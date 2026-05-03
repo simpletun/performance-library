@@ -1,0 +1,12 @@
+node_modules
+coverage
+build
+.nyc_output
+.idea/
+reports
+.DS_Store
+*.log
+*.iml
+*.log.*
+test-results
+package-lock.json

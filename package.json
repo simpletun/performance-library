@@ -1,0 +1,63 @@
+{
+  "name": "@gtm-av/av-performance-library",
+  "version": "3.0.2",
+  "description": "A library for performance testing utilities",
+  "publishConfig": {
+    "registry": "https://artifactory.nike.com/artifactory/api/npm/npm-nike/"
+  },
+  "main": "build/index.js",
+  "scripts": {
+    "build": "babel src --out-dir build",
+    "clean": "rimraf ./reports ./docs ./build ./coverage",
+    "coverage": "nyc --reporter=html --reporter=text npm test",
+    "jsdoc": "jsdoc -r -p -c .jsdoc.json -d docs",
+    "lint": "eslint src -f html -o ./reports/eslint.html",
+    "prepublishOnly": "npm run build",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.nike.com:assort-visual/av-performance-library.git"
+  },
+  "author": "Assort/Visual Team",
+  "contributors": [
+    "Hayes McCardell <hayes.mccardell@nike.com>",
+    "Greg Fisher <greg.fisher@nike.com>",
+    "Adam Olsen <adam.olsen@nike.com>"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@foundation/js-iterators": "^3.0.0",
+    "@gtm-av/js-request-queue": ">=1.0.1",
+    "@opentelemetry/api": "^1.9.0",
+    "csv-stringify": "^1.0.4",
+    "follow-redirects": "^1.15.0",
+    "json-stable-stringify": "^1.0.1",
+    "jsonpath-plus": "^7.2.0",
+    "mysql": "^2.18.1",
+    "winston": "^3.14.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.0",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/register": "^7.24.0",
+    "babel-plugin-istanbul": "^7.0.0",
+    "cpx": "^1.5.0",
+    "cross-env": "^7.0.3",
+    "docdash": "^2.0.0",
+    "eslint": "^9.11.0",
+    "jsdoc": "^4.0.3",
+    "mocha": "^10.7.0",
+    "nyc": "^17.0.0",
+    "rimraf": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@opentelemetry/auto-instrumentations-node": "^0.50.0",
+    "@splunk/otel": "^2.12.0"
+  }
+}
