@@ -1,0 +1,5 @@
+--colors
+--require test/babel
+--require source-map-support/register
+--timeout 5000
+./test/**/*test.js

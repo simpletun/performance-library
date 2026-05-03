@@ -1,0 +1,31 @@
+# Development files
+node_modules
+coverage
+.nyc_output
+.idea/
+reports
+.DS_Store
+*.log
+*.iml
+*.log.*
+test-results
+
+# Source files (we publish the built version)
+src
+
+# Development config files
+.eslintrc
+.babelrc
+.jsdoc.json
+.mocharc.json
+
+# Git files
+.git
+.gitignore
+
+# Test files
+test
+
+# Package lock
+package-lock.json
+
