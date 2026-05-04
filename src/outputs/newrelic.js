@@ -4,7 +4,6 @@ import { sep } from 'path';
 import { Writable } from 'stream';
 import { STATUS_CODES } from 'http';
 import { logger } from '../utils/logger';
-import { RequestQueue } from '@gtm-av/js-request-queue';
 
 const scenarioName = process.argv[2];
 const projectName = __dirname.split(sep).splice(-3, 1)[0];
@@ -52,30 +51,50 @@ export class NewrelicStream extends Writable {
 			productCount: response.productCount
 		};
 
-		this._writeQueue.request(event);
+		this._writeQueue.push(event);
 		done();
 	}
 }
 
-class NewrelicEventQueue extends RequestQueue {
+class NewrelicEventQueue {
 	constructor({ accountId, insertKey }) {
-		super({
-			batchSize: 1000,
-			batchTimeout: 10000,
-			variables: [ ]
-		});
-
 		this.accountId = accountId;
 		this.insertKey = insertKey;
+		this.batchSize = 1000;
+		this.batchTimeout = 10000;
+		this.queue = [];
+		this.timer = null;
+	}
+
+	push(event) {
+		this.queue.push(event);
+
+		if (this.queue.length >= this.batchSize) {
+			this.flush();
+		} else if (!this.timer) {
+			this.timer = setTimeout(() => this.flush(), this.batchTimeout);
+		}
+	}
+
+	async flush() {
+		if (this.timer) {
+			clearTimeout(this.timer);
+			this.timer = null;
+		}
+
+		if (this.queue.length === 0) return;
+
+		const events = [...this.queue];
+		this.queue = [];
+
+		try {
+			await this.makeRequest(events);
+		} catch (err) {
+			logger.error('Failed to send events to New Relic', { error: err.message || err });
+		}
 	}
 
 	makeRequest(events) {
-		const result = new Map();
-
-		events.forEach((event) => {
-			result.set(event, null);
-		});
-
 		return new Promise((resolve, reject) => {
 			const payload = JSON.stringify(events);
 			const options = {
@@ -85,20 +104,18 @@ class NewrelicEventQueue extends RequestQueue {
 				path: `/v1/accounts/${this.accountId}/events`,
 				headers: {
 					'X-Insert-Key': this.insertKey,
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'Content-Length': Buffer.byteLength(payload)
 				}
 			};
 
 			const req = https.request(options, (res) => {
-				res.on('end', () => {
-					if (res.statusCode < 400) {
-						resolve(result);
-					}
-
-					else {
-						reject('Received an error response from newrelic');
-					}
-				});
+				res.resume(); // Consume response data to free up memory
+				if (res.statusCode >= 200 && res.statusCode < 300) {
+					resolve();
+				} else {
+					reject(new Error(`New Relic API returned status ${res.statusCode}`));
+				}
 			});
 
 			req.on('error', reject);

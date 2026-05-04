@@ -1,11 +1,11 @@
 
-# av-performance-library
+# cluster-load-runner
 
 A comprehensive Node.js library for building distributed HTTP performance testing frameworks using the cluster module. This library provides the core infrastructure for creating multi-threaded, coordinated load tests with support for data providers, custom workers, and multiple output formats.
 
 ## What is this for?
 
-The av-performance-library provides a master-worker architecture for performance testing. It handles:
+The cluster-load-runner provides a master-worker architecture for performance testing. It handles:
 
 - **Process Management**: Spawns and manages worker threads using Node.js cluster module
 - **Inter-Process Communication**: Coordinates message passing between master and worker processes
@@ -28,11 +28,11 @@ The library uses a master-worker pattern:
 
 ### Option 1: Clone the Performance Framework (Recommended)
 
-The easiest way to get started is to clone the [performance-framework](https://github.nike.com/assort-visual/performance-framework) repository as a starting point. It already has the correct structure, example scenarios, and worker implementations you can use as templates.
+The easiest way to get started is to clone the [performance-framework](https://github.com/simpletun/performance-framework) repository as a starting point. It already has the correct structure, example scenarios, and worker implementations you can use as templates.
 
 ```bash
 # Clone the performance-framework
-git clone git@github.nike.com:assort-visual/performance-framework.git my-performance-tests
+git clone git@github.com:simpletun/performance-framework.git my-performance-tests
 cd my-performance-tests
 
 # Install dependencies
@@ -61,7 +61,7 @@ If you prefer to build from scratch, here's the basic structure you'll need:
 
 ## Quick Start Example
 
-The [performance-framework](https://github.nike.com/assort-visual/performance-framework) is a reference implementation that shows how to use this library. Here's the basic structure:
+The performance-framework is a reference implementation that shows how to use this library. Here's the basic structure:
 
 ### 1. Entry Point (`src/start.js`)
 
@@ -69,13 +69,13 @@ The [performance-framework](https://github.nike.com/assort-visual/performance-fr
 import { isMaster } from 'cluster';
 
 if (isMaster) {
-    require('@gtm-av/av-performance-library/build/master');
+    require('cluster-load-runner/build/master');
 } else {
-    require('@gtm-av/av-performance-library/build/worker');
+    require('cluster-load-runner/build/worker');
 }
 ```
 
-This simple entry point determines whether the process is the master or a worker and loads the appropriate module from av-performance-library.
+This simple entry point determines whether the process is the master or a worker and loads the appropriate module from cluster-load-runner.
 
 ### 2. Project Structure
 
@@ -120,7 +120,7 @@ const server = {
 // Export providers (optional) - workers that supply data to other workers
 exports.providers = [
     {
-        workerType: 'file-data-provider',     // Built-in provider from av-performance-library
+        workerType: 'file-data-provider',     // Built-in provider from cluster-load-runner
         workerGroup: 'dataReader',            // Name used by workers to request data
         threads: 1,                           // Usually 1 thread for providers
         fileName: 'test-data.csv',           // File to read from
@@ -144,7 +144,7 @@ exports.workers = [
 ];
 
 // You can also use ramp-up for gradual load increase
-const rampup = require('@gtm-av/av-performance-library/build/utils/rampup');
+const rampup = require('cluster-load-runner/build/utils/rampup');
 
 exports.workers = [
     {
@@ -206,7 +206,7 @@ import {
     logger,           // Logging utility
     getAuthToken,     // Get OAuth token
     FileReadMessenger // Request data from file provider
-} from '@gtm-av/av-performance-library';
+} from 'cluster-load-runner';
 
 // If using a data provider, create a messenger
 const dataMessenger = new FileReadMessenger({
@@ -298,7 +298,7 @@ exports.workers = [
 5. **Use makeRequest()**: This utility automatically times requests and reports results to the master
 6. **Log appropriately**: Use `logger.debug()`, `logger.info()`, `logger.error()` for different verbosity levels
 
-### Available Utilities from av-performance-library
+### Available Utilities from cluster-load-runner
 
 The library exports many utilities for building workers:
 
@@ -313,8 +313,6 @@ sendMessage()   // Send messages to master
 makeRequest()   // Make HTTP request with automatic timing and reporting
 request()       // Lower-level HTTP request
 getAuthToken()  // Get OAuth authentication token
-getAVTestToken() // Get AV-specific test token
-getClientToken() // Get client credentials token
 
 // Data providers
 FileReadMessenger    // Request data from file-data-provider
@@ -333,7 +331,7 @@ mean()
 variance()
 standardDeviation()
 
-// Query generation (for AV services)
+// Query generation
 generateQuery()
 generateBaseExportQuery()
 
@@ -427,7 +425,7 @@ The master process automatically calculates:
 - Success/error counts
 - Total request count
 
-## Developing / Building av-performance-library
+## Developing / Building cluster-load-runner
 
 The project is setup using Babel for ES6+ transpilation.
 
@@ -450,7 +448,7 @@ npm run lint       # Run linter
 ### Project Structure
 
 ```
-av-performance-library/
+cluster-load-runner/
 ├── src/
 │   ├── index.js           # Main exports
 │   ├── master.js          # Master process implementation
