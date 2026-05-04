@@ -12,12 +12,13 @@ import { runModeFlags } from '../run-mode';
 // ignoring certain types of errors.
 export const makeRequest = async ({ transactionName, requestConfig, parseField = '', returnBody = false, ignoreError = false, ignoredCodes = [], trackRequest = true }) => {
 	let tracer, span;
-	const requestData = Object.assign({
+	const requestData = {
 		method: 'get',
 		hostname: config.server.hostname,
 		headers: config.server.headers,
 		ssl: config.server.ssl,
-	}, requestConfig);
+		...requestConfig
+	};
 
 	logger.silly('-------> Making Request with requestData --> ', requestData);
 
@@ -35,7 +36,7 @@ export const makeRequest = async ({ transactionName, requestConfig, parseField =
 		reportedSuccess = true;
 	}
 
-	if(runModeFlags.has('signalfx') && span){
+	if(span){
 		span.setAttributes({
 			'perf.res.status': status,
 			'perf.res.success': reportedSuccess,
