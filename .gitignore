@@ -10,3 +10,4 @@ reports
 *.log.*
 test-results
 package-lock.json
+.env
