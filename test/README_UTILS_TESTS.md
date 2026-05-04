@@ -1,6 +1,6 @@
 # Utility Functions Unit Tests
 
-This document provides an overview of the unit tests added for the utility functions in the av-performance-library.
+This document provides an overview of the unit tests added for the utility functions in the cluster-load-runner.
 
 ## Test Files Added
 
@@ -208,4 +208,3 @@ Potential areas for additional test coverage:
 - Tests are independent and can run in any order
 - No external services required for testing
 - Fast execution suitable for CI/CD pipelines
-

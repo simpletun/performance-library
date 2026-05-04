@@ -1,4 +1,3 @@
-const { forEach } = require('@foundation/js-iterators');
 
 /**
  * Calculates a weighted average between 2 sets of sample size and mean
@@ -70,7 +69,7 @@ export const mean = (data) => {
 
 	let sum = 0;
 
-	forEach(data, num => {
+	data.forEach(num => {
 		if(typeof num !== 'number') {
 			throw new Error(`Encountered a ${typeof num} in the data array. Expected only numbers`);
 		}
@@ -97,7 +96,7 @@ export const variance = (data, average = mean(data)) => {
 
 	let v = 0;
 
-	forEach(data, num => {
+	data.forEach(num => {
 		if(typeof num !== 'number') {
 			throw new Error(`Encountered a ${typeof num} in the data array. Expected only numbers`);
 		}

@@ -1,9 +1,9 @@
 {
-  "name": "@gtm-av/av-performance-library",
+  "name": "cluster-load-runner",
   "version": "3.0.2",
   "description": "A library for performance testing utilities",
   "publishConfig": {
-    "registry": "https://artifactory.nike.com/artifactory/api/npm/npm-nike/"
+    "registry": "https://registry.npmjs.org/"
   },
   "main": "build/index.js",
   "scripts": {
@@ -17,21 +17,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.nike.com:assort-visual/av-performance-library.git"
+    "url": "git@github.com:simpletun/performance-library.git"
   },
-  "author": "Assort/Visual Team",
-  "contributors": [
-    "Hayes McCardell <hayes.mccardell@nike.com>",
-    "Greg Fisher <greg.fisher@nike.com>",
-    "Adam Olsen <adam.olsen@nike.com>"
-  ],
+  "author": "Adam Olsen <aolsen1@gmail.com>",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@foundation/js-iterators": "^3.0.0",
-    "@gtm-av/js-request-queue": ">=1.0.1",
     "@opentelemetry/api": "^1.9.0",
     "csv-stringify": "^1.0.4",
     "follow-redirects": "^1.15.0",
