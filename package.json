@@ -6,6 +6,11 @@
     "registry": "https://registry.npmjs.org/"
   },
   "main": "build/index.js",
+  "exports": {
+    ".": "./build/index.js",
+    "./master": "./build/master.js",
+    "./worker": "./build/worker.js"
+  },
   "scripts": {
     "build": "babel src --out-dir build",
     "clean": "rimraf ./reports ./docs ./build ./coverage",
