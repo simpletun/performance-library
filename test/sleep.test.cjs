@@ -1,3 +1,4 @@
+// @ts-nocheck
 const assert = require('assert');
 const { sleep } = require('../src/utils/sleep');
 

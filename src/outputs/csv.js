@@ -7,6 +7,10 @@ import { STATUS_CODES } from 'http';
 
 // Generates a CSV results file in a jMeter compatible format
 export class CsvStream extends Writable {
+	/** @type {import('csv-stringify').Stringifier} */
+	_stringifier;
+
+	/** @param {string} outputDirectory */
 	constructor(outputDirectory) {
 		super({
 			objectMode: true
@@ -32,8 +36,7 @@ export class CsvStream extends Writable {
 				'sentBytes',
 				'allThreads',
 				'Latency',
-				'Connect',
-				'productCount'
+				'Connect'
 			]
 		});
 
@@ -48,6 +51,11 @@ export class CsvStream extends Writable {
 		});
 	}
 
+	/**
+	 * @param {{ response: Record<string, any>, workerType: string, totalThreads: number, pid: number }} chunk
+	 * @param {BufferEncoding} encoding
+	 * @param {(error?: Error | null) => void} done
+	 */
 	_write({ response, workerType, totalThreads, pid }, encoding, done) {
 		const row = [
 			response.startTime,

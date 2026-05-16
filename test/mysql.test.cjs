@@ -1,3 +1,4 @@
+// @ts-nocheck
 const assert = require('assert');
 const { EventEmitter } = require('events');
 
@@ -87,27 +88,14 @@ const mockLogger = {
 	error: () => {}
 };
 
-// Mock the modules before requiring
-const Module = require('module');
-const originalRequire = Module.prototype.require;
-
-Module.prototype.require = function(id) {
-	if (id === 'mysql') {
-		return {
-			createPool: mockCreatePool,
-			format: mockFormat
-		};
-	}
-	if (id === './logger' || id === '../utils/logger') {
-		return { logger: mockLogger };
-	}
-	return originalRequire.apply(this, arguments);
-};
-
-const { MysqlPool } = require('../src/utils/mysql');
-
-// Restore original require
-Module.prototype.require = originalRequire;
+let MysqlPool;
+before(async () => {
+	const { default: esmock } = await import('esmock');
+	({ MysqlPool } = await esmock('../src/utils/mysql.js', {
+		'mysql': { createPool: mockCreatePool, format: mockFormat },
+		'../src/utils/logger.js': { logger: mockLogger },
+	}));
+});
 
 describe('mysql.js', () => {
 	describe('MysqlPool constructor', () => {

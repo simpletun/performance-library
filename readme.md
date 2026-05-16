@@ -7,11 +7,11 @@ A comprehensive Node.js library for building distributed HTTP performance testin
 
 The cluster-load-runner provides a master-worker architecture for performance testing. It handles:
 
-- **Process Management**: Spawns and manages worker threads using Node.js cluster module
+- **Process Management**: Spawns and manages worker processes using Node.js cluster module
 - **Inter-Process Communication**: Coordinates message passing between master and worker processes
 - **Data Providers**: Built-in providers for file and MySQL data sources that feed test data to workers
-- **HTTP Request Utilities**: Simplified HTTP request handling with authentication and timing
-- **Result Collection**: Aggregates performance metrics from all workers and outputs results in multiple formats (CSV, JSON, NewRelic, stdout)
+- **HTTP Request Utilities**: Simplified HTTP request handling with timing and result reporting
+- **Result Collection**: Aggregates performance metrics from all workers and outputs results in multiple formats (CSV, JSON, NewRelic, InfluxDB, stdout)
 - **Ramp-up Strategies**: Gradually increase load over time with configurable thread scheduling
 - **Utility Functions**: Random data generation, caching, mathematical operations, and more
 
@@ -45,8 +45,7 @@ ls scenarios/
 ls src/workers/
 
 # Run an example scenario
-npm run compile
-npm start reference-example
+npm start perf-test-example
 ```
 
 From there, you can:
@@ -66,16 +65,16 @@ The performance-framework is a reference implementation that shows how to use th
 ### 1. Entry Point (`src/start.js`)
 
 ```javascript
-import { isMaster } from 'cluster';
+import cluster from 'cluster';
 
-if (isMaster) {
-    require('cluster-load-runner/build/master');
+if (cluster.isPrimary) {
+    await import('cluster-load-runner/master');
 } else {
-    require('cluster-load-runner/build/worker');
+    await import('cluster-load-runner/worker');
 }
 ```
 
-This simple entry point determines whether the process is the master or a worker and loads the appropriate module from cluster-load-runner.
+This simple entry point determines whether the process is the primary or a worker and loads the appropriate module from cluster-load-runner.
 
 ### 2. Project Structure
 
@@ -94,7 +93,7 @@ your-performance-project/
 
 ## Defining Scenario Documents
 
-Scenarios are JavaScript files that export configuration for your performance test. They define what workers to run, how many threads to use, and test parameters.
+Scenarios are JavaScript files that default-export configuration for your performance test. They define what workers to run, how many threads to use, and test parameters.
 
 ### Basic Scenario Structure
 
@@ -117,44 +116,56 @@ const server = {
     }
 };
 
-// Export providers (optional) - workers that supply data to other workers
-exports.providers = [
-    {
-        workerType: 'file-data-provider',     // Built-in provider from cluster-load-runner
-        workerGroup: 'dataReader',            // Name used by workers to request data
-        threads: 1,                           // Usually 1 thread for providers
-        fileName: 'test-data.csv',           // File to read from
-        recycleOnEof: true,                   // Loop back to start when file ends
-        chunkSize: Infinity,
-        bufferSize: 512 * 1024
-    }
-];
+export default {
+    // Providers (optional) - workers that supply data to other workers
+    providers: [
+        {
+            workerType: 'file-data-provider',     // Built-in provider from cluster-load-runner
+            workerGroup: 'dataReader',            // Name used by workers to request data
+            threads: 1,                           // Usually 1 thread for providers
+            fileName: 'test-data.csv',            // File to read from
+            recycleOnEof: true,                   // Loop back to start when file ends
+            chunkSize: Infinity,
+            bufferSize: 512 * 1024
+        }
+    ],
 
-// Export workers - your custom test logic
-exports.workers = [
-    {
-        workerType: 'my-custom-worker',       // Name of your worker file (src/workers/my-custom-worker.js)
-        threads: 10,                          // Number of parallel workers
-        subThreads: 5,                        // Each worker runs 5 concurrent loops
-        thinkFrom: 200,                       // Minimum delay between requests (ms)
-        thinkTo: 500,                         // Maximum delay between requests (ms)
-        server,                               // Server configuration
-        scenario                              // Scenario configuration
-    }
-];
+    // Workers - your custom test logic
+    workers: [
+        {
+            workerType: 'my-custom-worker',       // Name of your worker file (src/workers/my-custom-worker.js)
+            threads: 10,                          // Number of parallel workers
+            subThreads: 5,                        // Each worker runs 5 concurrent loops
+            thinkFrom: 200,                       // Minimum delay between requests (ms)
+            thinkTo: 500,                         // Maximum delay between requests (ms)
+            server,                               // Server configuration
+            scenario                              // Scenario configuration
+        }
+    ]
+};
+```
 
-// You can also use ramp-up for gradual load increase
-const rampup = require('cluster-load-runner/build/utils/rampup');
+You can also use ramp-up for gradual load increase:
 
-exports.workers = [
-    {
-        workerType: 'my-custom-worker',
-        threads: rampup.evenRampUp(50, 2 * minute),  // Ramp from 0 to 50 threads over 2 minutes
-        subThreads: 3,
-        server,
-        scenario
-    }
-];
+```javascript
+import { evenRampUp } from 'cluster-load-runner';
+
+const minute = 60 * 1000;
+const server = { ssl: true, hostname: 'api.example.com' };
+const scenario = { duration: 10 * minute };
+
+export default {
+    providers: [],
+    workers: [
+        {
+            workerType: 'my-custom-worker',
+            threads: evenRampUp(50, 2 * minute),  // Ramp from 0 to 50 threads over 2 minutes
+            subThreads: 3,
+            server,
+            scenario
+        }
+    ]
+};
 ```
 
 ### Scenario Configuration Options
@@ -176,7 +187,7 @@ exports.workers = [
 | Option | Type | Description |
 |--------|------|-------------|
 | `workerType` | string | Name of your worker file (without .js extension) |
-| `threads` | number/array | Number of workers, or ramp-up array from `rampup.evenRampUp()` |
+| `threads` | number/array | Number of workers, or ramp-up array from `evenRampUp()` |
 | `subThreads` | number | How many concurrent loops each worker runs |
 | `thinkFrom` | number | Minimum delay between requests (milliseconds) |
 | `thinkTo` | number | Maximum delay between requests (milliseconds) |
@@ -204,7 +215,6 @@ import {
     sleep,            // Sleep utility
     randomNumberFrom, // Random number generator
     logger,           // Logging utility
-    getAuthToken,     // Get OAuth token
     FileReadMessenger // Request data from file provider
 } from 'cluster-load-runner';
 
@@ -230,13 +240,10 @@ onMessage('start', async () => {
 
 // Each subthread runs independently
 const startSubThread = async () => {
-    // Get authentication token if needed
-    const authToken = await getAuthToken();
-
     // Loop until master sends 'stop' message
     while (true) {
         try {
-            await performTest(authToken);
+            await performTest();
         } catch (error) {
             logger.error(`Test error: ${error.message}`);
         }
@@ -247,7 +254,7 @@ const startSubThread = async () => {
 };
 
 // Your actual test logic
-const performTest = async (authToken) => {
+const performTest = async () => {
     // Get test data from provider (if using one)
     const testData = await dataMessenger.getLine(config.randomLine);
 
@@ -256,10 +263,7 @@ const performTest = async (authToken) => {
         transactionName: 'API Test Request',  // Shows up in results
         requestConfig: {
             path: `/api/endpoint/${testData}`,
-            method: 'GET',
-            headers: {
-                'Authorization': authToken
-            }
+            method: 'GET'
         }
     });
 };
@@ -270,23 +274,26 @@ const performTest = async (authToken) => {
 Reference your worker in a scenario file:
 
 ```javascript
-exports.workers = [
-    {
-        workerType: 'api-test',  // Matches filename: src/workers/api-test.js
-        threads: 10,
-        subThreads: 5,
-        thinkFrom: 200,
-        thinkTo: 500,
-        randomLine: true,
-        server: {
-            ssl: true,
-            hostname: 'api.example.com'
-        },
-        scenario: {
-            duration: 5 * 60 * 1000
+export default {
+    providers: [],
+    workers: [
+        {
+            workerType: 'api-test',  // Matches filename: src/workers/api-test.js
+            threads: 10,
+            subThreads: 5,
+            thinkFrom: 200,
+            thinkTo: 500,
+            randomLine: true,
+            server: {
+                ssl: true,
+                hostname: 'api.example.com'
+            },
+            scenario: {
+                duration: 5 * 60 * 1000
+            }
         }
-    }
-];
+    ]
+};
 ```
 
 ### Worker Best Practices
@@ -312,7 +319,6 @@ sendMessage()   // Send messages to master
 // HTTP utilities
 makeRequest()   // Make HTTP request with automatic timing and reporting
 request()       // Lower-level HTTP request
-getAuthToken()  // Get OAuth authentication token
 
 // Data providers
 FileReadMessenger    // Request data from file-data-provider
@@ -321,19 +327,23 @@ MysqlQueryMessenger  // Request data from mysql-data-provider
 // Utilities
 sleep()                  // Async sleep
 randomNumberFrom()       // Random number in range
-randomInt()             // Random integer
-randomItem()            // Pick random item from array
-coinFlip()              // Random boolean
-logger                  // Winston logger instance
+randomInt()              // Random integer
+randomItem()             // Pick random item from array
+randomItems()            // Pick multiple random items from array
+coinFlip()               // Random boolean
+logger                   // Winston logger instance
 
 // Math utilities
 mean()
 variance()
-standardDeviation()
+populationStandardDeviation()
+sampleStandardDeviation()
+combinedAverage()
+combinedSampleStandardDeviation()
+round()
 
-// Query generation
-generateQuery()
-generateBaseExportQuery()
+// Ramp-up
+evenRampUp()     // Generate a ramp-up schedule for threads
 
 // Caching
 cache                // Cache utility
@@ -342,12 +352,9 @@ cachedFunction()     // Memoization wrapper
 
 ## Running Tests
 
-After setting up scenarios and workers:
+After setting up scenarios and workers in your consuming project:
 
 ```bash
-# Compile your workers
-npm run compile
-
 # Run a specific scenario
 npm start your-scenario
 
@@ -368,13 +375,16 @@ Workers can communicate with each other through the master process:
 
 ```javascript
 // In scenario, assign workers to a group
-exports.workers = [
-    {
-        workerType: 'receiver-worker',
-        workerGroup: 'receivers',  // Group name
-        threads: 5
-    }
-];
+export default {
+    providers: [],
+    workers: [
+        {
+            workerType: 'receiver-worker',
+            workerGroup: 'receivers',  // Group name
+            threads: 5
+        }
+    ]
+};
 
 // In another worker, broadcast to the group
 sendMessage('broadcast', {
@@ -411,12 +421,13 @@ sendMessage('direct', {
 
 ## Output Formats
 
-Results can be output in multiple formats (configured via command-line flags):
+Results can be output in multiple formats, selected via the `--output` run mode flag:
 
-- **CSV**: Detailed per-request results in CSV format
-- **JSON**: Results in JSON format
-- **NewRelic**: Send metrics to NewRelic APM
-- **Stdout**: Print results to console
+- **CSV** (`--output=csv`, default): Detailed per-request results in CSV format
+- **JSON** (`--output=json`): Results in JSON format
+- **NewRelic** (`--output=newrelic`): Send metrics to NewRelic APM
+- **InfluxDB** (`--output=influxdb`): Send metrics to an InfluxDB instance
+- **Stdout** (`--output=stdout`): Print results to console
 
 The master process automatically calculates:
 - Average response time
@@ -425,17 +436,9 @@ The master process automatically calculates:
 - Success/error counts
 - Total request count
 
-## Developing / Building cluster-load-runner
+## Developing cluster-load-runner
 
-The project is setup using Babel for ES6+ transpilation.
-
-### Building
-
-```bash
-npm run build
-```
-
-This creates transpiled files in the `build/` directory.
+This project uses native ES modules (`"type": "module"`) — there is no build step. The `src/` directory is published directly to npm.
 
 ### Testing
 
@@ -458,6 +461,7 @@ cluster-load-runner/
 │   │   └── mysql-data-provider.js
 │   ├── outputs/           # Output formatters
 │   │   ├── csv.js
+│   │   ├── influxdb.js
 │   │   ├── json.js
 │   │   ├── newrelic.js
 │   │   └── stdout.js
@@ -468,7 +472,7 @@ cluster-load-runner/
 │       ├── rampup.js
 │       ├── random.js
 │       └── ...
-└── build/                 # Compiled output (generated)
+└── types.d.ts             # TypeScript type definitions
 ```
 
 The `src/index.js` file defines the library's public API. All exports from this file are available to consumers of the library.

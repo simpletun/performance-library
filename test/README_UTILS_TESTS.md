@@ -4,7 +4,7 @@ This document provides an overview of the unit tests added for the utility funct
 
 ## Test Files Added
 
-### 1. `request.test.js` - HTTP/HTTPS Request Testing
+### 1. `request.test.cjs` - HTTP/HTTPS Request Testing
 **Coverage: 100% statements, 93.75% branches**
 
 Tests the low-level HTTP/HTTPS request wrapper functionality.
@@ -29,7 +29,7 @@ Tests the low-level HTTP/HTTPS request wrapper functionality.
 
 ---
 
-### 2. `makeRequest.test.js` - High-Level Request Wrapper
+### 2. `makeRequest.test.cjs` - High-Level Request Wrapper
 **Coverage: 100% statements, 100% branches**
 
 Tests the performance-focused request wrapper with additional functionality.
@@ -54,7 +54,7 @@ Tests the performance-focused request wrapper with additional functionality.
 
 ---
 
-### 3. `sleep.test.js` - Sleep Utility Testing
+### 3. `sleep.test.cjs` - Sleep Utility Testing
 **Coverage: 100% statements, 100% branches**
 
 Tests the asynchronous sleep/delay utility.
@@ -74,7 +74,7 @@ Tests the asynchronous sleep/delay utility.
 
 ---
 
-### 4. `linereader.test.js` - File Line Reading
+### 4. `linereader.test.cjs` - File Line Reading
 **Tests: 17 test cases covering comprehensive functionality**
 
 Tests the LineReader class for efficient file reading line-by-line.
@@ -103,7 +103,7 @@ Tests the LineReader class for efficient file reading line-by-line.
 
 ---
 
-### 5. `mysql.test.js` - MySQL Connection Pool
+### 5. `mysql.test.cjs` - MySQL Connection Pool
 **Coverage: 80.35% statements, 72% branches**
 
 Tests the MysqlPool class for database connection management and querying.
@@ -164,7 +164,7 @@ npm test
 npm run coverage
 
 # Run specific test file
-npx mocha test/request.test.js
+npx mocha test/request.test.cjs
 ```
 
 ## Test Statistics

@@ -1,15 +1,16 @@
 
 import cluster from 'cluster';
-import { logger, bindWorkers as bindLogger } from './utils/logger';
-import { parseRunMode, runModeFlags } from './run-mode';
-import { CsvStream } from './outputs/csv';
-import { JsonStream } from './outputs/json';
-import { NewrelicStream } from './outputs/newrelic';
-import { StdoutStream } from './outputs/stdout';
+import { logger, bindWorkers as bindLogger } from './utils/logger.js';
+import { parseRunMode, runModeFlags } from './run-mode.js';
+import { CsvStream } from './outputs/csv.js';
+import { InfluxDbStream } from './outputs/influxdb.js';
+import { JsonStream } from './outputs/json.js';
+import { NewrelicStream } from './outputs/newrelic.js';
+import { StdoutStream } from './outputs/stdout.js';
 
 import path from 'path';
 
-const appDir = path.dirname(require.main.filename);
+const appDir = path.dirname(process.argv[1]);
 
 parseRunMode();
 
@@ -17,28 +18,42 @@ const outputType = runModeFlags.get('output') || 'csv';
 
 const outputs = {
 	csv: CsvStream,
+	influxdb: InfluxDbStream,
 	json: JsonStream,
 	newrelic: NewrelicStream,
 	stdout: StdoutStream
 };
 
 const scenario = process.argv[2];
-const config = global.config = require(`${appDir}/../scenarios/${scenario}`);
-const outputStream = new outputs[outputType](`${appDir}/results`);
+const { default: config } = await import(`${appDir}/../scenarios/${scenario}.js`);
+(/** @type {any} */ (global)).config = config;
+const outputStream = new outputs[/** @type {keyof typeof outputs} */ (outputType)](`${appDir}/results`);
 const runMode = process.argv[3];
 
+/** @type {{ duration: number, success: boolean }[]} */
 const results = [ ];
+/** @type {Set<import('cluster').Worker>} */
 const workers = new Set();
+/** @type {Set<import('cluster').Worker>} */
 const providers = new Set();
+/** @type {Record<string, import('cluster').Worker[]>} */
 const workersByGroup = { };
+/** @type {Record<string, number>} */
 const lastIndexByGroup = { };
+/** @type {Record<string, Set<import('cluster').Worker>>} */
 const workersByType = { };
+/** @type {Record<number, import('cluster').Worker>} */
 const workersByPid = { };
 
-let shuttingDown, drainingProviders = false;
+let shuttingDown = false;
+let drainingProviders = false;
 
 let lastProcessedIndex = 0;
 
+/**
+ * @param {import('cluster').Worker} worker
+ * @param {string | string[]} [workerGroup]
+ */
 const addToWorkerGroup = (worker, workerGroup) => {
 	if (! workerGroup) {
 		return;
@@ -56,10 +71,11 @@ const addToWorkerGroup = (worker, workerGroup) => {
 	workersByGroup[workerGroup].push(worker);
 };
 
+/** @type {(() => void)[]} */
 const waitingThreads = [ ];
 
 if (runModeFlags.has('heap')) {
-	cluster.setupMaster({
+	cluster.setupPrimary({
 		execArgv: process.execArgv.concat([ `--max_old_space_size=${runModeFlags.get('heap')}` ])
 	});
 }
@@ -68,6 +84,10 @@ logger.info('Starting up worker threads...');
 
 let totalThreads = 0;
 
+/**
+ * @param {Record<string, any>} workerConfig
+ * @param {boolean} [isProvider]
+ */
 const createWorker = (workerConfig, isProvider = false) => {
 	const worker = cluster.fork();
 	const { workerGroup, workerType } = workerConfig;
@@ -78,7 +98,9 @@ const createWorker = (workerConfig, isProvider = false) => {
 	}
 
 	workersByType[workerType].add(worker);
-	workersByPid[worker.process.pid] = worker;
+	if (worker.process.pid !== undefined) {
+		workersByPid[worker.process.pid] = worker;
+	}
 	addToWorkerGroup(worker, workerGroup);
 
 	if(!isProvider){
@@ -96,7 +118,7 @@ const createWorker = (workerConfig, isProvider = false) => {
 	});
 
 	// eslint-disable-next-line no-loop-func
-	worker.on('message', (message) => {
+	worker.on('message', (/** @type {Record<string, any>} */ message) => {
 		switch (message.type) {
 			case 'response':
 				logger.silly('Worker message', message);
@@ -105,7 +127,7 @@ const createWorker = (workerConfig, isProvider = false) => {
 					pid: worker.process.pid,
 					response: message,
 					workerType,
-					hostname: workerConfig.server.hostname,
+					hostname: workerConfig.server?.hostname,
 					totalThreads
 				});
 
@@ -119,7 +141,9 @@ const createWorker = (workerConfig, isProvider = false) => {
 			case 'done':
 				worker.kill();
 				workersByType[workerType].delete(worker);
-				delete workersByPid[worker.process.pid];
+				if (worker.process.pid !== undefined) {
+					delete workersByPid[worker.process.pid];
+				}
 
 				if(!isProvider){
 					totalThreads--;
@@ -167,11 +191,11 @@ const createWorker = (workerConfig, isProvider = false) => {
 				break;
 
 			case 'broadcast':
-				const broadcastGroup = message.workerGroup ? workersByGroup[message.workerGroup] : worker;
+				const broadcastGroup = message.workerGroup ? workersByGroup[message.workerGroup] : [worker];
 
 				if (broadcastGroup) {
 					broadcastGroup.forEach((worker) => {
-						message.messages.forEach((subMessage) => {
+						message.messages.forEach((/** @type {any} */ subMessage) => {
 							worker.send(subMessage);
 						});
 					});
@@ -196,7 +220,7 @@ const createWorker = (workerConfig, isProvider = false) => {
 
 				if (roundrobinGroup) {
 					if (message.messages) {
-						message.messages.forEach((subMessage) => {
+						message.messages.forEach((/** @type {any} */ subMessage) => {
 							const index = nextIndex();
 							const worker = roundrobinGroup[index];
 
@@ -237,6 +261,10 @@ const createWorker = (workerConfig, isProvider = false) => {
 	return worker;
 };
 
+/**
+ * @param {Record<string, any>} workerConfig
+ * @param {boolean} [isProvider]
+ */
 const createWorkers = (workerConfig, isProvider = false) => {
 	const { threads, workerType } = workerConfig;
 
@@ -247,7 +275,7 @@ const createWorkers = (workerConfig, isProvider = false) => {
 	}
 
 	else if (Array.isArray(threads)) {
-		threads.forEach(({ startTime, count }) => {
+		threads.forEach((/** @type {{ startTime: number, count: number }} */ { startTime, count }) => {
 			const threadConfig = Object.assign({ }, workerConfig);
 			const startThread = () => {
 				logger.debug('Starting new group of threads', { workerType, count });
@@ -282,7 +310,7 @@ const createWorkers = (workerConfig, isProvider = false) => {
 	}
 };
 
-config.providers.forEach((workerConfig) => {
+config.providers.forEach((/** @type {Record<string, any>} */ workerConfig) => {
 	if (runModeFlags.has('single-thread')) {
 		workerConfig.threads = 1;
 		if (workerConfig.subThreads) {
@@ -296,7 +324,7 @@ config.providers.forEach((workerConfig) => {
 	cluster.on('exit', (worker, code, signal) => handleExit(worker, code, signal));
 });
 
-config.workers.forEach((workerConfig) => {
+config.workers.forEach((/** @type {Record<string, any>} */ workerConfig) => {
 	if (runModeFlags.has('single-thread')) {
 		workerConfig.threads = 1;
 		if(workerConfig.subThreads){
@@ -310,6 +338,11 @@ config.workers.forEach((workerConfig) => {
 	cluster.on('exit', (worker, code, signal) => handleExit(worker, code, signal));
 });
 
+/**
+ * @param {import('cluster').Worker} worker
+ * @param {number} code
+ * @param {string} signal
+ */
 const handleExit = (worker, code, signal) => {
 	if (workers.has(worker)) {
 		logger.warn(`Worker ${worker.process.pid} died`, {
@@ -345,9 +378,10 @@ const runScenario = () => {
 
 	waitingThreads.forEach((startThreadWait) => startThreadWait());
 
-	setTimeout(processPartialResults, 5000);
+	setTimeout(processPartialResults, 5000).unref();
 };
 
+/** @param {{ duration: number, success: boolean }[]} results */
 const processResults = (results) => {
 	if (! results.length) {
 		const zero = '0ms';
@@ -367,6 +401,7 @@ const processResults = (results) => {
 	let successCount = 0;
 	let errorCount = 0;
 
+	/** @type {number[]} */
 	const durations = [ ];
 
 	results.forEach((result) => {
@@ -405,10 +440,11 @@ const processPartialResults = () => {
 
 		logger.info(processResults(segment));
 
-		setTimeout(processPartialResults, 5000);
+		setTimeout(processPartialResults, 5000).unref();
 	}
 };
 
+/** @param {number[]} numbers */
 const getStats = (numbers) => {
 	const sum = numbers.reduce((a, b) => a + b, 0);
 	const average = sum / numbers.length;
@@ -418,6 +454,7 @@ const getStats = (numbers) => {
 	return { average, roundedAverage, max, min };
 };
 
+/** @param {number[]} arr */
 const getMinMax = (arr) => {
 	let len = arr.length;
 	let max = -Infinity;
@@ -431,4 +468,4 @@ const getMinMax = (arr) => {
 	return {min, max};
 };
 
-setTimeout(runScenario, 1000);
+setTimeout(runScenario, 1000).unref();

@@ -1,3 +1,4 @@
+// @ts-nocheck
 const assert = require('assert');
 const { EventEmitter } = require('events');
 
@@ -60,27 +61,15 @@ const mockRandomItem = (array) => {
 	return array[Math.floor(Math.random() * array.length)];
 };
 
-// Mock the modules before requiring
-const Module = require('module');
-const originalRequire = Module.prototype.require;
-
-Module.prototype.require = function(id) {
-	if (id === 'fs') {
-		return { createReadStream: mockCreateReadStream };
-	}
-	if (id === './logger' || id === '../utils/logger') {
-		return { logger: mockLogger };
-	}
-	if (id === './random' || id === '../utils/random') {
-		return { randomItem: mockRandomItem };
-	}
-	return originalRequire.apply(this, arguments);
-};
-
-const { LineReader } = require('../src/utils/linereader');
-
-// Restore original require
-Module.prototype.require = originalRequire;
+let LineReader;
+before(async () => {
+	const { default: esmock } = await import('esmock');
+	({ LineReader } = await esmock('../src/utils/linereader.js', {
+		'fs': { createReadStream: mockCreateReadStream },
+		'../src/utils/logger.js': { logger: mockLogger },
+		'../src/utils/random.js': { randomItem: mockRandomItem },
+	}));
+});
 
 describe('linereader.js', () => {
 	beforeEach(() => {

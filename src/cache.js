@@ -1,8 +1,10 @@
+/** @param {number} ttl */
 export const cache = (ttl) => ({
-	set (key, value) {
-		this[key] = value;
-		setTimeout(() => delete this[key], ttl);
+	set (/** @type {string} */ key, /** @type {any} */ value) {
+		const self = /** @type {Record<string, any>} */ (this);
+		self[key] = value;
+		setTimeout(() => delete self[key], ttl);
 
-		return this;
+		return self;
 	}
 });

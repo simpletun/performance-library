@@ -1,3 +1,4 @@
+// @ts-nocheck
 const assert = require('assert');
 
 const { combinedAverage, combinedSampleStandardDeviation, mean, populationStandardDeviation, round, sampleStandardDeviation, variance } = require('../src/math');

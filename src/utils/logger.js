@@ -2,8 +2,8 @@
 
 import winston from 'winston';
 import cluster from 'cluster';
-import { ClusterTransport, bindClusterListeners } from '../transports/cluster-transport';
-import { runModeFlags, whenRunModeLoaded } from '../run-mode';
+import { ClusterTransport, bindClusterListeners } from '../transports/cluster-transport.js';
+import { runModeFlags, whenRunModeLoaded } from '../run-mode.js';
 
 // Create winston v3 logger with appropriate transports based on process type
 const createLogger = () => {
@@ -29,6 +29,7 @@ const createLogger = () => {
 			let metaStr = '';
 			if (metaKeys.length > 0) {
 				// Reconstruct the object from the unpacked properties
+				/** @type {Record<string, any>} */
 				const metaObj = {};
 				metaKeys.forEach(key => {
 					metaObj[key] = meta[key];

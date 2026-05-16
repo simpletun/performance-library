@@ -1,4 +1,9 @@
 
+/**
+ * @param {number} threadCount
+ * @param {number} rampTime
+ * @param {number} [groupSize]
+ */
 export const evenRampUp = (threadCount, rampTime, groupSize = 1) => {
 	const threadsArray = [];
 	const threadGroups = Math.ceil(threadCount / groupSize); // 34 / 10 = 4

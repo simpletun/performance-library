@@ -2,9 +2,9 @@
 Data provider for file reads.  Creates a LineReader instance with connection to readstream.
 File being read, plus other read options, are configured in scenario config file.
 */
-import { logger } from '../utils/logger';
-import { config, shutdown, onMessage, sendMessage } from '../worker';
-import { LineReader } from '../utils/linereader';
+import { logger } from '../utils/logger.js';
+import { config, shutdown, onMessage, sendMessage } from '../worker.js';
+import { LineReader } from '../utils/linereader.js';
 
 let linereader = new LineReader({filename: config.fileName, chunkSize: config.chunkSize,
 	recycleOnEof: config.recycleOnEof, bufferSize: config.bufferSize});
@@ -14,7 +14,7 @@ onMessage('stop', async () => {
 });
 
 // When a worker asks for data, read the next line
-onMessage('fileRead', async (requestMessage) => {
+onMessage('fileRead', async (/** @type {{ random: boolean, responseType: string, requestId: string, from: string }} */ requestMessage) => {
 	// messages.push(fileReadObject);
 	logger.silly('Provider got request for file data');
 	const lineObj = await readLine(!!requestMessage.random);
@@ -47,6 +47,7 @@ onMessage('fileRead', async (requestMessage) => {
 
 });
 
+/** @param {boolean} randomLine */
 const readLine = async (randomLine) => {
 
 	let response = await linereader.nextLine(randomLine);
