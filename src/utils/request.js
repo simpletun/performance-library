@@ -1,6 +1,10 @@
-import { http, https } from 'follow-redirects';
-import { logger } from './logger';
+import followRedirects from 'follow-redirects';
+const { http, https } = /** @type {any} */ (followRedirects);
+import { logger } from './logger.js';
 
+/**
+ * @param {{ method: string, headers: Record<string, string>, path: string, payload?: string, hostname: string, port?: number, ssl?: boolean }} options
+ */
 export const request = ({ method, headers, path, payload, hostname, port, ssl }) => {
 	return new Promise((resolve) => {
 		const options = {
@@ -12,8 +16,12 @@ export const request = ({ method, headers, path, payload, hostname, port, ssl })
 			rejectUnauthorized: false
 		};
 
+		/** @type {number | undefined} */
 		let connectTime;
 
+		const startTime = Date.now();
+
+		/** @param {import('http').IncomingMessage} res */
 		const onResponse = (res) => {
 			const firstByteTime = Date.now();
 
@@ -25,7 +33,7 @@ export const request = ({ method, headers, path, payload, hostname, port, ssl })
 
 			res.on('end', () => {
 				const duration = Date.now() - startTime;
-				const success = res.statusCode < 400;
+				const success = !!res.statusCode && res.statusCode < 400;
 
 				logger.debug('HTTP Request', options);
 				logger[success ? 'silly' : 'debug']('HTTP Response', {'Status': res.statusCode, 'Body': body});
@@ -36,17 +44,16 @@ export const request = ({ method, headers, path, payload, hostname, port, ssl })
 					startTime,
 					duration,
 					body,
-					bytes: req.socket.bytesRead,
-					sentBytes: req.socket.bytesWritten,
+					bytes: req.socket?.bytesRead,
+					sentBytes: req.socket?.bytesWritten,
 					error: success ? void 0 : body,
 					latency: firstByteTime - startTime,
-					connect: connectTime - startTime
+					connect: connectTime ? connectTime - startTime : void 0
 				});
 			});
 
 		};
 
-		const startTime = Date.now();
 		const req = (ssl ? https : http).request(options, onResponse);
 
 		req.on('socket', () => {
@@ -55,7 +62,7 @@ export const request = ({ method, headers, path, payload, hostname, port, ssl })
 			});
 		});
 
-		req.on('error', (error) => {
+		req.on('error', (/** @type {Error} */ error) => {
 			logger.debug('HTTP Request', options);
 			logger.warn(error);
 

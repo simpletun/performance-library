@@ -1,15 +1,17 @@
 //TODO: Determine if this works in the library
 
 import { createReadStream } from 'fs';
-import { logger } from './logger';
-import { randomItem } from './random';
+import { logger } from './logger.js';
+import { randomItem } from './random.js';
 
 const lineend = /\r\n?|\n/;
 const props = new WeakMap();
 
 export class LineReader {
+	/** @param {{ filename: string, chunkSize?: number, recycleOnEof?: boolean, bufferSize?: number }} options */
 	constructor({ filename, chunkSize = 10240, recycleOnEof = true, bufferSize = 64 * 1024 }) {
 
+		/** @type {string[]} */
 		let lineArray = [];
 
 		props.set(this, {
@@ -103,11 +105,11 @@ export class LineReader {
 						}
 
 						// Read a chunk from the stream
-						chunk = this.getChunk(props.get(this).readStream);
+						chunk = this.getChunk();
 
 						if(chunk == null){
 							logger.silly('Chunk is null, reached end of file, awaiting closed.');
-							this.closeStream(_props.readStream);
+							this.closeStream();
 							await this.closed;
 							break;
 						}
@@ -178,6 +180,10 @@ export class LineReader {
 		}
 	};
 
+	/**
+	 * @param {import('fs').ReadStream} readStream
+	 * @returns {Promise<void>}
+	 */
 	isReadable(readStream) {
 		// Promise resolves 50 ms after stream is readable, gives a bit of time for socket to be available
 		return new Promise((resolve) => {
@@ -193,6 +199,10 @@ export class LineReader {
 		});
 	}
 
+	/**
+	 * @param {import('fs').ReadStream} readStream
+	 * @returns {Promise<void>}
+	 */
 	isClosed(readStream) {
 		// Promise resolves 50 ms after stream is closed, gives a bit of time for socket to be released
 		return new Promise((resolve) => {
@@ -206,6 +216,7 @@ export class LineReader {
 		});
 	}
 
+	/** @param {string} filename */
 	getNewStream(filename) {
 		logger.silly('Running getNewStream');
 
@@ -223,6 +234,10 @@ export class LineReader {
 		return readStream;
 	};
 
+	/**
+	 * @param {string[]} lineArray
+	 * @returns {string}
+	 */
 	getRandomLine(lineArray) {
 		let testLine = randomItem(lineArray);
 

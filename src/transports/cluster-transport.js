@@ -10,6 +10,10 @@ export class ClusterTransport extends Transport {
 		super(opts);
 	}
 
+	/**
+	 * @param {Record<string | symbol, any>} info
+	 * @param {() => void} callback
+	 */
 	log(info, callback) {
 		setImmediate(() => {
 			this.emit('logged', info);
@@ -21,6 +25,7 @@ export class ClusterTransport extends Transport {
 			const rawLevel = info[Symbol.for('level')] || info.level;
 
 			// Collect all metadata from info object (excluding winston internal properties)
+			/** @type {Record<string, any>} */
 			const meta = {};
 			const excludeKeys = ['level', 'message', 'timestamp'];
 			for (const key in info) {
@@ -45,6 +50,7 @@ export class ClusterTransport extends Transport {
 /**
  * Bind listener on primary process to receive logs from workers
  */
+/** @param {{ log: (info: Record<string, any>) => void }} logger */
 export function bindClusterListeners(logger) {
 	if (!cluster.isPrimary) {
 		return;

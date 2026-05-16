@@ -1,18 +1,23 @@
-const { cache } = require('./cache');
-const stringify = require('json-stable-stringify');
-const { map } = require('@foundation/js-iterators');
+import { cache } from './cache.js';
+import stringify from 'json-stable-stringify';
 
+/** @param {any[]} args */
 const serializeArgs = (args) => {
-	return map(args, arg => stringify(arg)).join('\0\0');
+	return args.map(arg => stringify(arg)).join('\0\0');
 };
 
-export const cachedFunction = (ttl = 60000, f) => {
+/**
+ * @param {(...args: any[]) => any} f
+ * @param {number} [ttl]
+ */
+export const cachedFunction = (f, ttl = 60000) => {
+	/** @type {Record<string, any> & { set(key: string, value: any): any }} */
 	const fCache = cache(ttl);
 
-	return async (...args) => {
+	return async (/** @type {any[]} */ ...args) => {
 		const key = serializeArgs(args);
 
-		if(!fCache[key]) {
+		if(!(key in fCache)) {
 			fCache.set(key, f(...args));
 		}
 

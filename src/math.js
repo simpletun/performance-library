@@ -85,7 +85,7 @@ export const mean = (data) => {
  *
  * @function variance
  * @param {Array.<Number>} data
- * @param {Number} [mean = getMean(data)] Mean of the data set
+ * @param {number} [average] Mean of the data set
  *
  * @return {Number} variance of the data set
  */
@@ -118,7 +118,6 @@ export const variance = (data, average = mean(data)) => {
  *
  * @function populationStandardDeviation
  * @param {Array.<Number>} data
- * @param {Number} [variance = variance(data)] Mean of the data set
  *
  * @return {Number} population standard deviation
  */
@@ -139,7 +138,6 @@ export const populationStandardDeviation = (data) => {
  *
  * @function sampleStandardDeviation
  * @param {Array.<Number>} data
- * @param {Number} variance
  *
  * @return {Number} sample standard deviation
  */
@@ -162,5 +160,5 @@ export const sampleStandardDeviation = (data) => {
  * @return {number} number rounded to at most the specified number of decimals
  */
 export const round = (value, decimals = 0) => {
-	return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+	return Number(Math.round(Number(value + 'e' + decimals)) + 'e-' + decimals);
 };

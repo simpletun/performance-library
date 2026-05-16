@@ -1,0 +1,5 @@
+{
+  "timeout": 5000,
+  "spec": "test/**/*.test.cjs",
+  "exit": true
+}
