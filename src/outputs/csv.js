@@ -1,9 +1,14 @@
 
+import { sep } from 'path';
 import { Writable } from 'stream';
 import { sync as mkdir } from 'mkdirp';
 import { createWriteStream } from 'fs';
 import { Stringifier } from 'csv-stringify';
 import { STATUS_CODES } from 'http';
+import { logger } from '../utils/logger.js';
+
+const scenarioName = process.argv[2];
+const projectName = import.meta.dirname.split(sep).splice(-3, 1)[0];
 
 // Generates a CSV results file in a jMeter compatible format
 export class CsvStream extends Writable {
@@ -45,6 +50,12 @@ export class CsvStream extends Writable {
 		});
 
 		this._stringifier.pipe(outputStream);
+
+		logger.info('Recording results to CSV', {
+			outputDirectory,
+			scenarioName,
+			projectName
+		});
 
 		this.on('end', () => {
 			outputStream.end();
