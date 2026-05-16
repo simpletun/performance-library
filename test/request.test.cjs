@@ -1,3 +1,4 @@
+// @ts-nocheck
 const assert = require('assert');
 const { EventEmitter } = require('events');
 
@@ -16,24 +17,14 @@ const mockLogger = {
 	warn: () => {}
 };
 
-// We need to mock the modules before requiring the code under test
-const Module = require('module');
-const originalRequire = Module.prototype.require;
-
-Module.prototype.require = function(id) {
-	if (id === 'follow-redirects') {
-		return { http: mockHttp, https: mockHttps };
-	}
-	if (id === '../src/utils/logger' || id === './logger') {
-		return { logger: mockLogger };
-	}
-	return originalRequire.apply(this, arguments);
-};
-
-const { request } = require('../src/utils/request');
-
-// Restore original require
-Module.prototype.require = originalRequire;
+let request;
+before(async () => {
+	const { default: esmock } = await import('esmock');
+	({ request } = await esmock('../src/utils/request.js', {
+		'follow-redirects': { default: { http: mockHttp, https: mockHttps } },
+		'../src/utils/logger.js': { logger: mockLogger },
+	}));
+});
 
 describe('request.js', () => {
 	let mockReq;

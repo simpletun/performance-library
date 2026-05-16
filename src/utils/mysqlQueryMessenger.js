@@ -1,5 +1,3 @@
-//TODO: Determine if this can be used in the library
-
 /*
 This class simplifies using the mysql-data-provider worker type when asynchronously requesting queries
 from a db connection pool.
@@ -10,19 +8,20 @@ controls which host and db to which a query is sent.
 event listener for reacting to the query read response.  These are defaulted, and normally an override
 is not required.
 */
-import { onMessage, sendMessage } from '../worker';
-import { logger } from './logger';
+import { onMessage, sendMessage } from '../worker.js';
+import { logger } from './logger.js';
 
 const props = new WeakMap();
 
 let nextQueryId = 0;
 
 export class MysqlQueryMessenger {
+	/** @param {{ workerGroup: string, responseType?: string }} options */
 	constructor({ workerGroup, responseType = workerGroup + '_response' }) {
 		const promises = new Map();
 
 		// Add listener for dbResult object type
-		onMessage(responseType, (dbResponseObject) => {
+		onMessage(responseType, (/** @type {{ queryId: number, results: any }} */ dbResponseObject) => {
 			logger.silly('Requester got db Response Message');
 
 			if(props.get(this).promises.has(dbResponseObject.queryId)) {
@@ -39,6 +38,7 @@ export class MysqlQueryMessenger {
 	}
 
 	defer() {
+		/** @type {{ data?: Promise<any>, resolve?: (value: any) => void, reject?: (reason?: any) => void }} */
 		const deferred = { };
 
 		deferred.data = new Promise((resolve, reject) => {
@@ -49,6 +49,7 @@ export class MysqlQueryMessenger {
 		return deferred;
 	};
 
+	/** @param {string} queryString */
 	async doQuery(queryString) {
 		const _props = props.get(this);
 

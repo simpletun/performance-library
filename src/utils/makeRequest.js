@@ -1,29 +1,33 @@
 
-import { request } from '../utils/request';
-import { config, sendMessage } from '../worker';
-import { logger } from '../utils/logger';
+import { request } from './request.js';
+import { config, sendMessage } from '../worker.js';
+import { logger } from './logger.js';
 import { JSONPath as jsonpath } from 'jsonpath-plus';
 import { trace } from '@opentelemetry/api';
-import { runModeFlags } from '../run-mode';
+import { runModeFlags } from '../run-mode.js';
 
 
 // makeRequest function wraps request, itself a simple wrapper for http/https requests, to expose additional functionality specific to perf scenarios.
 // Additional functionality includes defaulting some request params, tracking the response in the scenario, parsing out response fields, and
 // ignoring certain types of errors.
+/**
+ * @param {{ transactionName: string, requestConfig: { path: string, [key: string]: any }, parseField?: string, returnBody?: boolean, ignoreError?: boolean, ignoredCodes?: number[], trackRequest?: boolean }} options
+ */
 export const makeRequest = async ({ transactionName, requestConfig, parseField = '', returnBody = false, ignoreError = false, ignoredCodes = [], trackRequest = true }) => {
 	let tracer, span;
 	const requestData = {
 		method: 'get',
-		hostname: config.server.hostname,
-		headers: config.server.headers,
-		ssl: config.server.ssl,
+		hostname: config.server?.hostname ?? '',
+		port: config.server?.port,
+		headers: config.server?.headers ?? {},
+		ssl: config.server?.ssl,
 		...requestConfig
 	};
 
 	logger.silly('-------> Making Request with requestData --> ', requestData);
 
 	if(runModeFlags.has('signalfx')){
-		tracer = trace.getTracer('av-perflib-request');
+		tracer = trace.getTracer('perflib-request');
 		span = tracer.startSpan(transactionName);
 	}
 
@@ -68,6 +72,7 @@ export const makeRequest = async ({ transactionName, requestConfig, parseField =
 		}
 	}
 
+	/** @param {string} name */
 	const send = (name) =>
 		sendMessage('response', {
 			name,

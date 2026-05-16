@@ -4,6 +4,7 @@ import { sync as mkdir } from 'mkdirp';
 import { createWriteStream } from 'fs';
 
 export class JsonStream extends Writable {
+	/** @param {string} outputDirectory */
 	constructor(outputDirectory) {
 		super({
 			objectMode: true
@@ -21,6 +22,11 @@ export class JsonStream extends Writable {
 		});
 	}
 
+	/**
+	 * @param {any} chunk
+	 * @param {BufferEncoding} encoding
+	 * @param {(error?: Error | null) => void} done
+	 */
 	_write(chunk, encoding, done) {
 		let json;
 
@@ -28,7 +34,7 @@ export class JsonStream extends Writable {
 			json = JSON.stringify(chunk);
 		}
 
-		catch (err) {
+		catch (/** @type {any} */ err) {
 			return done(err);
 		}
 

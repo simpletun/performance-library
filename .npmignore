@@ -10,14 +10,14 @@ reports
 *.log.*
 test-results
 
-# Source files (we publish the built version)
-src
-
 # Development config files
 .eslintrc
-.babelrc
 .jsdoc.json
 .mocharc.json
+.tern-project
+.editorconfig
+.env.example
+jsconfig.json
 
 # Git files
 .git
@@ -25,6 +25,13 @@ src
 
 # Test files
 test
+scenarios
+
+# Dev-only docs
+AGENTS.md
+
+# Dev scripts
+scripts
 
 # Package lock
 package-lock.json

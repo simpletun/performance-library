@@ -1,6 +1,6 @@
 
 import { createPool, format } from 'mysql';
-import { logger } from './logger';
+import { logger } from './logger.js';
 
 const isSelect = /^select/i;
 const largeWhitespace = /[\n\t]+/g;
@@ -8,6 +8,7 @@ const largeWhitespace = /[\n\t]+/g;
 const props = new WeakMap();
 
 export class MysqlPool {
+	/** @param {{ master: any, readCluster?: any }} options */
 	constructor({ master, readCluster }) {
 		const masterPool = makePool(master);
 		const readClusterPool = readCluster ? makePool(readCluster) : masterPool;
@@ -33,6 +34,11 @@ export class MysqlPool {
 		props.get(this).masterPool.end();
 	}
 
+	/**
+	 * @param {string} queryTemplate
+	 * @param {any[]} [params]
+	 * @param {((row: any) => void) | undefined} [processor]
+	 */
 	query(queryTemplate, params, processor) {
 		const formattedQuery = format(queryTemplate, params || [ ]).trim();
 
@@ -41,7 +47,7 @@ export class MysqlPool {
 			: this.getWriteConnection();
 
 		return new Promise((resolve, reject) => {
-			const onError = (error) => {
+			const onError = (/** @type {import('mysql').MysqlError} */ error) => {
 				if (error.code === 'ER_LOCK_WAIT_TIMEOUT' || error.code === 'ER_LOCK_DEADLOCK') {
 					logger.warn(`MySQL Lock Error ${error.code} encountered; retrying query...`);
 
@@ -59,14 +65,14 @@ export class MysqlPool {
 
 						queryHandler.on('error', onError);
 						queryHandler.on('result', processor);
-						queryHandler.on('end', (result) => {
+						queryHandler.on('end', (/** @type {any} */ result) => {
 							connection.release();
 							resolve(result);
 						});
 					}
 
 					else {
-						connection.query(formattedQuery, (error, results, fields) => {
+						connection.query(formattedQuery, (/** @type {import('mysql').MysqlError} */ error, /** @type {any} */ results, /** @type {any} */ fields) => {
 							connection.release();
 
 							if (error) {
@@ -79,6 +85,7 @@ export class MysqlPool {
 				})
 				.catch((err) => {
 					logger.error(`Getting connection error ---> ${err}`);
+					reject(err);
 				});
 		});
 	}
@@ -101,10 +108,12 @@ export class MysqlPool {
 };
 
 // Do lock reties with a random delay between 0 and 100 milliseconds
+/** @param {() => void} func */
 const retryDelay = (func) => {
 	setTimeout(func, Math.floor(Math.random() * 100));
 };
 
+/** @param {import('mysql').Pool} pool */
 const getConnection = (pool) => {
 	return new Promise((resolve, reject) => {
 		pool.getConnection((error, connection) => {
@@ -119,6 +128,7 @@ const getConnection = (pool) => {
 
 const heldPoolTimers = new WeakMap();
 
+/** @param {import('mysql').PoolConnection} connection */
 const onConnection = (connection) => {
 	const thread = connection.threadId;
 
@@ -147,12 +157,14 @@ const onConnection = (connection) => {
 	});
 };
 
+/** @param {import('mysql').PoolConnection} connection */
 const onAcquire = (connection) => {
 	const onHeldTooLong = () => logger.warn(`MySQL connection ${connection.threadId} held for over a minute, this might be an unreleased connection`);
 
 	heldPoolTimers.set(connection, setTimeout(onHeldTooLong, 60000));
 };
 
+/** @param {import('mysql').PoolConnection} connection */
 const onRelease = (connection) => {
 	const timer = heldPoolTimers.get(connection);
 
@@ -162,6 +174,7 @@ const onRelease = (connection) => {
 	}
 };
 
+/** @param {import('mysql').PoolConfig} config */
 const makePool = (config) => {
 	const url = buildUrl(config);
 	const pool = createPool(config);
@@ -176,11 +189,17 @@ const makePool = (config) => {
 	return pool;
 };
 
+/** @param {import('mysql').PoolConfig} config */
 const buildUrl = (config) => {
 	return `mysql://${config.host}:${config.port}/${config.database}`;
 };
 
+/**
+ * @param {string} url
+ * @param {import('mysql').Pool} pool
+ */
 const healthcheck = (url, pool) => {
+	/** @type {{ url: string, available?: boolean, info?: string, duration?: string, warning?: string }} */
 	const status = { url };
 	const startTime = Date.now();
 
@@ -206,6 +225,10 @@ const healthcheck = (url, pool) => {
 		});
 };
 
+/**
+ * @param {string} url
+ * @param {import('mysql').Pool} pool
+ */
 const testConnection = (url, pool) => {
 	return new Promise((resolve, reject) => {
 		pool.getConnection((err, connection) => {
@@ -226,6 +249,10 @@ const testConnection = (url, pool) => {
 	});
 };
 
+/**
+ * @param {string} string
+ * @param {number} length
+ */
 const truncate = (string, length) => {
 	if (string.length > length) {
 		return string.slice(0, length) + '.....';

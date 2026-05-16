@@ -1,3 +1,4 @@
+// @ts-nocheck
 const assert = require('assert');
 
 // Mock modules
@@ -39,58 +40,25 @@ const mockTrace = {
 	})
 };
 
-// Mock the modules before requiring
-const Module = require('module');
-const originalRequire = Module.prototype.require;
-
-// Set up the worker config before mocking
-mockConfig = {
-	server: {
-		hostname: 'api.example.com',
-		headers: { 'User-Agent': 'Test' },
-		ssl: true
-	}
-};
-
-Module.prototype.require = function(id) {
-	if (id === '../utils/request' || id === './request') {
-		return { request: mockRequest };
-	}
-	if (id === '../worker' || id === './worker') {
-		return {
-			config: mockConfig,
+let makeRequest;
+before(async () => {
+	const { default: esmock } = await import('esmock');
+	({ makeRequest } = await esmock('../src/utils/makeRequest.js', {
+		'../src/utils/request.js': { request: mockRequest },
+		'../src/worker.js': {
+			get config() { return mockConfig; },
 			sendMessage: mockSendMessage,
-			get config() { return mockConfig; }
-		};
-	}
-	if (id === '../utils/logger' || id === './logger') {
-		return { logger: mockLogger };
-	}
-	if (id === 'jsonpath-plus') {
-		return { JSONPath: ({ path, json }) => {
-			// Simple mock implementation
-			if (path === '$.user.name' && json.user) {
-				return json.user.name;
-			}
-			if (path === '$.id') {
-				return json.id;
-			}
+		},
+		'../src/utils/logger.js': { logger: mockLogger },
+		'jsonpath-plus': { JSONPath: ({ path, json }) => {
+			if (path === '$.user.name' && json.user) return json.user.name;
+			if (path === '$.id') return json.id;
 			return null;
-		}};
-	}
-	if (id === '@opentelemetry/api') {
-		return { trace: mockTrace };
-	}
-	if (id === '../run-mode' || id === './run-mode') {
-		return { runModeFlags: mockRunModeFlags };
-	}
-	return originalRequire.apply(this, arguments);
-};
-
-const { makeRequest } = require('../src/utils/makeRequest');
-
-// Restore original require
-Module.prototype.require = originalRequire;
+		}},
+		'@opentelemetry/api': { trace: mockTrace },
+		'../src/run-mode.js': { runModeFlags: mockRunModeFlags },
+	}));
+});
 
 describe('makeRequest.js', () => {
 	beforeEach(() => {

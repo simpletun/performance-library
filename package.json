@@ -1,23 +1,24 @@
 {
   "name": "cluster-load-runner",
-  "version": "3.0.2",
+  "version": "1.0.0",
   "description": "A library for performance testing utilities",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
-  "main": "build/index.js",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "./index.d.ts",
   "exports": {
-    ".": "./build/index.js",
-    "./master": "./build/master.js",
-    "./worker": "./build/worker.js"
+    ".": "./src/index.js",
+    "./master": "./src/master.js",
+    "./worker": "./src/worker.js"
   },
   "scripts": {
-    "build": "babel src --out-dir build",
-    "clean": "rimraf ./reports ./docs ./build ./coverage",
-    "coverage": "nyc --reporter=html --reporter=text npm test",
+    "clean": "rimraf ./reports ./docs ./coverage",
+    "coverage": "c8 --reporter=html --reporter=text npm test",
     "jsdoc": "jsdoc -r -p -c .jsdoc.json -d docs",
     "lint": "eslint src -f html -o ./reports/eslint.html",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "npm test",
     "test": "mocha"
   },
   "repository": {
@@ -25,7 +26,7 @@
     "url": "git@github.com:simpletun/performance-library.git"
   },
   "author": "Adam Olsen <aolsen1@gmail.com>",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -34,28 +35,35 @@
     "csv-stringify": "^1.0.4",
     "follow-redirects": "^1.15.0",
     "json-stable-stringify": "^1.0.1",
-    "jsonpath-plus": "^7.2.0",
+    "jsonpath-plus": "^10.3.0",
+    "mkdirp": "^3.0.1",
     "mysql": "^2.18.1",
     "winston": "^3.14.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.24.0",
-    "@babel/core": "^7.24.0",
-    "@babel/preset-env": "^7.24.0",
-    "@babel/register": "^7.24.0",
-    "babel-plugin-istanbul": "^7.0.0",
-    "cpx": "^1.5.0",
+    "c8": "^10.0.0",
     "cross-env": "^7.0.3",
     "docdash": "^2.0.0",
     "eslint": "^9.11.0",
+    "esmock": "^2.7.4",
     "jsdoc": "^4.0.3",
     "mocha": "^10.7.0",
-    "nyc": "^17.0.0",
     "rimraf": "^6.0.0"
+  },
+  "overrides": {
+    "serialize-javascript": ">=7.0.5"
   },
   "peerDependencies": {
     "@opentelemetry/auto-instrumentations-node": "^0.50.0",
     "@splunk/otel": "^2.12.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/auto-instrumentations-node": {
+      "optional": true
+    },
+    "@splunk/otel": {
+      "optional": true
+    }
   }
 }

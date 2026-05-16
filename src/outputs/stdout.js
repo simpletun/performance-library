@@ -14,6 +14,11 @@ export class StdoutStream extends Writable {
 		});
 	}
 
+	/**
+	 * @param {any} chunk
+	 * @param {BufferEncoding} encoding
+	 * @param {(error?: Error | null) => void} done
+	 */
 	_write(chunk, encoding, done) {
 		let json;
 
@@ -21,7 +26,7 @@ export class StdoutStream extends Writable {
 			json = JSON.stringify(chunk);
 		}
 
-		catch (err) {
+		catch (/** @type {any} */ err) {
 			return done(err);
 		}
 

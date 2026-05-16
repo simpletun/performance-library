@@ -1,5 +1,5 @@
 
-import { logger } from './utils/logger';
+import { logger } from './utils/logger.js';
 
 let loaded = false;
 
@@ -21,8 +21,10 @@ export const parseRunMode = (runMode = process.argv[3]) => {
 	callbacks.forEach((callback) => callback());
 };
 
+/** @type {(() => void)[]} */
 const callbacks = [ ];
 
+/** @param {() => void} callback */
 export const whenRunModeLoaded = (callback) => {
 	if (loaded) {
 		callback();
