@@ -24,7 +24,8 @@ export class InfluxDbStream extends Writable {
 		});
 
 		this._scenarioStart = Date.now();
-		this._runId = `${this._scenarioStart.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+		const dt = new Date(this._scenarioStart).toISOString().slice(0, 16).replace(/-/g, '').replace('T', '_').replace(':', '');
+		this._runId = `${dt}-${Math.random().toString(36).slice(2, 7)}`;
 		
 		// Configuration defaults to options, falling back to Environment Variables
 		this._writeQueue = new InfluxDbEventQueue({
