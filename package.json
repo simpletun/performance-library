@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:simpletun/performance-library.git"
+    "url": "git+ssh://git@github.com/simpletun/performance-library.git"
   },
   "author": "Adam Olsen <aolsen1@gmail.com>",
   "license": "MIT",
