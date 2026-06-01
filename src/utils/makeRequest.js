@@ -26,7 +26,7 @@ export const makeRequest = async ({ transactionName, requestConfig, parseField =
 
 	logger.silly('-------> Making Request with requestData --> ', requestData);
 
-	if(runModeFlags.has('signalfx')){
+	if(runModeFlags.has('signalfx') || runModeFlags.has('otel-traces')){
 		tracer = trace.getTracer('perflib-request');
 		span = tracer.startSpan(transactionName);
 	}
