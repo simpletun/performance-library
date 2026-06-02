@@ -7,7 +7,6 @@ import { Writable } from 'stream';
 export interface OtelStreamOptions {
 	endpoint?: string;
 	headers?: Record<string, string>;
-	serviceName?: string;
 	exportIntervalMs?: number;
 	runId?: string;
 	durationBuckets?: number[];

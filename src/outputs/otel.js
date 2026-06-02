@@ -1,4 +1,4 @@
-import { sep } from 'path';
+import { basename } from 'path';
 import { STATUS_CODES } from 'http';
 import { Writable } from 'stream';
 import { MeterProvider, PeriodicExportingMetricReader, AggregationType } from '@opentelemetry/sdk-metrics';
@@ -7,7 +7,7 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import { logger } from '../utils/logger.js';
 
 const scenarioName = process.argv[2];
-const projectName = import.meta.dirname.split(sep).splice(-3, 1)[0];
+const projectName = basename(process.cwd());
 
 // Tuned for HTTP response times in the 500–3000ms range; more resolution there than the SDK defaults
 const DEFAULT_DURATION_BUCKETS_MS = [0, 10, 25, 50, 100, 200, 300, 500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000, 4000, 5000, 7500, 10000];
@@ -29,7 +29,7 @@ const parseOtlpHeaders = (headerStr) => {
 export class OtelStream extends Writable {
 	/**
 	 * @param {string} [_resultsPath] ignored; kept for consistency with other output stream constructors
-	 * @param {{ endpoint?: string, headers?: Record<string,string>, serviceName?: string, exportIntervalMs?: number, runId?: string, durationBuckets?: number[], bytesBuckets?: number[] }} [options]
+	 * @param {{ endpoint?: string, headers?: Record<string,string>, exportIntervalMs?: number, runId?: string, durationBuckets?: number[], bytesBuckets?: number[] }} [options]
 	 */
 	constructor(_resultsPath, options = {}) {
 		super({ objectMode: true });
@@ -40,7 +40,6 @@ export class OtelStream extends Writable {
 
 		const endpoint = options.endpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
 		const headers = options.headers || parseOtlpHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS);
-		const serviceName = options.serviceName || process.env.OTEL_SERVICE_NAME || projectName;
 		const exportIntervalMs = options.exportIntervalMs || 10000;
 		const durationBuckets = options.durationBuckets || DEFAULT_DURATION_BUCKETS_MS;
 		const bytesBuckets = options.bytesBuckets || DEFAULT_BYTES_BUCKETS;
@@ -52,7 +51,6 @@ export class OtelStream extends Writable {
 
 		this._meterProvider = new MeterProvider({
 			resource: resourceFromAttributes({
-				'service.name': serviceName,
 				'run.id': this._runId,
 				'scenario.name': scenarioName,
 				'project.name': projectName,
@@ -110,7 +108,6 @@ export class OtelStream extends Writable {
 
 		logger.info('Recording results to OTEL', {
 			endpoint,
-			serviceName,
 			runId: this._runId,
 			scenarioName,
 			projectName,
