@@ -13,18 +13,6 @@ const projectName = basename(process.cwd());
 const DEFAULT_DURATION_BUCKETS_MS = [0, 10, 25, 50, 100, 200, 300, 500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000, 4000, 5000, 7500, 10000];
 const DEFAULT_BYTES_BUCKETS = [0, 100, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
 
-/**
- * Parses a comma-separated "key=value,key=value" header string into an object.
- * Used to interpret OTEL_EXPORTER_OTLP_HEADERS env var.
- * @param {string | undefined} headerStr
- * @returns {Record<string, string>}
- */
-const parseOtlpHeaders = (headerStr) => {
-	if (!headerStr) return {};
-	return Object.fromEntries(
-		headerStr.split(',').map((h) => h.split('=').map((s) => s.trim()))
-	);
-};
 
 export class OtelStream extends Writable {
 	/**
@@ -39,7 +27,7 @@ export class OtelStream extends Writable {
 		this._runId = options.runId || `${dt}-${Math.random().toString(36).slice(2, 7)}`;
 
 		const endpoint = options.endpoint || process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318';
-		const headers = options.headers || parseOtlpHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS);
+		const headers = options.headers ?? {};
 		const exportIntervalMs = options.exportIntervalMs || 10000;
 		const durationBuckets = options.durationBuckets || DEFAULT_DURATION_BUCKETS_MS;
 		const bytesBuckets = options.bytesBuckets || DEFAULT_BYTES_BUCKETS;
