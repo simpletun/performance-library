@@ -11,7 +11,7 @@ The cluster-load-runner provides a master-worker architecture for performance te
 - **Inter-Process Communication**: Coordinates message passing between master and worker processes
 - **Data Providers**: Built-in providers for file and MySQL data sources that feed test data to workers
 - **HTTP Request Utilities**: Simplified HTTP request handling with timing and result reporting
-- **Result Collection**: Aggregates performance metrics from all workers and outputs results in multiple formats (CSV, JSON, NewRelic, InfluxDB, stdout)
+- **Result Collection**: Aggregates performance metrics from all workers and outputs results in multiple formats (CSV, JSON, NewRelic, InfluxDB, OTEL, stdout)
 - **Ramp-up Strategies**: Gradually increase load over time with configurable thread scheduling
 - **Utility Functions**: Random data generation, caching, mathematical operations, and more
 
@@ -423,11 +423,80 @@ sendMessage('direct', {
 
 Results can be output in multiple formats, selected via the `--output` run mode flag:
 
-- **CSV** (`--output=csv`, default): Detailed per-request results in CSV format
-- **JSON** (`--output=json`): Results in JSON format
-- **NewRelic** (`--output=newrelic`): Send metrics to NewRelic APM
-- **InfluxDB** (`--output=influxdb`): Send metrics to an InfluxDB instance
-- **Stdout** (`--output=stdout`): Print results to console
+- **CSV** (`output:csv`, default): Detailed per-request results in CSV format
+- **JSON** (`output:json`): Results in JSON format
+- **NewRelic** (`output:newrelic`): Send metrics to NewRelic APM
+- **InfluxDB** (`output:influxdb`): Send metrics to an InfluxDB instance
+- **OTEL** (`output:otel`): Export metrics via OpenTelemetry (OTLP/HTTP) — compatible with Grafana Alloy, OpenTelemetry Collector, and any OTLP-compatible backend
+- **Stdout** (`output:stdout`): Print results to console
+
+### OTEL Output
+
+The OTEL output type exports all request metrics as standard OpenTelemetry metrics using OTLP/HTTP, making it compatible with Grafana Alloy, Grafana Mimir, Prometheus, and any other OTLP-capable backend.
+
+**Usage:**
+
+```bash
+npm start my-scenario output:otel
+```
+
+**Configuration** (constructor options or environment variables):
+
+| Option | Env var | Default |
+|---|---|---|
+| `endpoint` | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` |
+| `headers` | `OTEL_EXPORTER_OTLP_HEADERS` (`key=val,key=val`) | `{}` |
+| `serviceName` | `OTEL_SERVICE_NAME` | project directory name |
+| `exportIntervalMs` | — | `10000` |
+| `runId` | — | auto-generated timestamp + random suffix |
+
+**Metrics exported:**
+
+| Metric name | Type | Unit | Description |
+|---|---|---|---|
+| `performance.request.duration` | Histogram | ms | Total request duration |
+| `performance.request.latency` | Histogram | ms | Time to first byte (TTFB) |
+| `performance.request.connect_time` | Histogram | ms | TCP connection time |
+| `performance.request.bytes_received` | Histogram | bytes | Response body size |
+| `performance.request.bytes_sent` | Histogram | bytes | Request body size |
+| `performance.requests` | Counter | requests | Total request count |
+
+Each metric carries these attributes: `request.name`, `http.response.status_code`, `http.response.status_message`, `request.success`, `request.error` (if present), `worker.type`, `process.pid`, `worker.thread_count`. Run-level dimensions (`run.id`, `scenario.name`, `project.name`, `service.name`) are attached as OTEL Resource attributes, which are sent once per export batch rather than on every data point.
+
+**Minimal Grafana Alloy config to receive from this library:**
+
+```hcl
+otelcol.receiver.otlp "default" {
+  http { endpoint = "0.0.0.0:4318" }
+
+  output {
+    metrics = [otelcol.exporter.prometheus.default.input]
+  }
+}
+
+otelcol.exporter.prometheus "default" {
+  // Required: promotes run.id, scenario.name, etc. from Resource attributes
+  // to per-metric labels so they can be used as dashboard filter variables.
+  resource_to_telemetry_conversion = true
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.remote_write "local" {
+  endpoint {
+    url = "http://localhost:9090/api/v1/write"
+  }
+}
+```
+
+**OTEL Tracing**
+
+To additionally emit per-request trace spans (separate from metrics), use the `otel-traces` run mode flag:
+
+```bash
+npm start my-scenario output:otel,otel-traces
+```
+
+This requires a `TracerProvider` to be configured externally in the consuming application. The legacy `signalfx` flag is still supported as an alias.
 
 The master process automatically calculates:
 - Average response time
@@ -464,6 +533,7 @@ cluster-load-runner/
 │   │   ├── influxdb.js
 │   │   ├── json.js
 │   │   ├── newrelic.js
+│   │   ├── otel.js
 │   │   └── stdout.js
 │   └── utils/             # Utility functions
 │       ├── logger.js

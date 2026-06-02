@@ -6,6 +6,7 @@ import { CsvStream } from './outputs/csv.js';
 import { InfluxDbStream } from './outputs/influxdb.js';
 import { JsonStream } from './outputs/json.js';
 import { NewrelicStream } from './outputs/newrelic.js';
+import { OtelStream } from './outputs/otel.js';
 import { StdoutStream } from './outputs/stdout.js';
 
 import path from 'path';
@@ -21,13 +22,16 @@ const outputs = {
 	influxdb: InfluxDbStream,
 	json: JsonStream,
 	newrelic: NewrelicStream,
+	otel: OtelStream,
 	stdout: StdoutStream
 };
 
 const scenario = process.argv[2];
 const { default: config } = await import(`${appDir}/../scenarios/${scenario}.js`);
 (/** @type {any} */ (global)).config = config;
-const outputStream = new outputs[/** @type {keyof typeof outputs} */ (outputType)](`${appDir}/results`);
+const outputStream = outputType === 'otel'
+	? new OtelStream(`${appDir}/results`, config.otelOptions)
+	: new outputs[/** @type {keyof typeof outputs} */ (outputType)](`${appDir}/results`);
 const runMode = process.argv[3];
 
 /** @type {{ duration: number, success: boolean }[]} */

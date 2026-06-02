@@ -75,7 +75,7 @@ before(async () => {
 	const savedArgv2 = process.argv[2];
 	const savedArgv3 = process.argv[3];
 
-	process.argv[1] = '/home/aolse/code/performance-library/src/master.js';
+	process.argv[1] = require('path').resolve(__dirname, '../src/master.js');
 	process.argv[2] = '__test__';
 	process.argv[3] = undefined;
 
