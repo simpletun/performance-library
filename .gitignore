@@ -9,5 +9,4 @@ reports
 *.iml
 *.log.*
 test-results
-package-lock.json
 .env
