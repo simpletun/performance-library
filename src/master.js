@@ -5,6 +5,7 @@ import { parseRunMode, runModeFlags } from './run-mode.js';
 import { CsvStream } from './outputs/csv.js';
 import { InfluxDbStream } from './outputs/influxdb.js';
 import { JsonStream } from './outputs/json.js';
+import { MultiStream } from './outputs/multi.js';
 import { NewrelicStream } from './outputs/newrelic.js';
 import { OtelStream } from './outputs/otel.js';
 import { StdoutStream } from './outputs/stdout.js';
@@ -15,23 +16,34 @@ const appDir = path.dirname(process.argv[1]);
 
 parseRunMode();
 
-const outputType = runModeFlags.get('output') || 'csv';
-
 const outputs = {
 	csv: CsvStream,
-	influxdb: InfluxDbStream,
 	json: JsonStream,
 	newrelic: NewrelicStream,
-	otel: OtelStream,
 	stdout: StdoutStream
 };
 
 const scenario = process.argv[2];
 const { default: config } = await import(`${appDir}/../scenarios/${scenario}.js`);
 (/** @type {any} */ (global)).config = config;
-const outputStream = outputType === 'otel'
-	? new OtelStream(`${appDir}/results`, config.otelOptions)
-	: new outputs[/** @type {keyof typeof outputs} */ (outputType)](`${appDir}/results`);
+
+const outputTypes = (runModeFlags.get('output') || 'csv').split('+');
+
+/** @param {string} type */
+const buildStream = (type) => {
+	if (type === 'otel')     return new OtelStream(`${appDir}/results`, config.otelOptions);
+	if (type === 'influxdb') return new InfluxDbStream(config.influxdbOptions);
+
+	if (!outputs[/** @type {keyof typeof outputs} */ (type)]) {
+		throw new Error(`Unsupported output type: "${type}". Available: ${Object.keys(outputs).join(', ')}, otel, influxdb`);
+	}
+
+	return new outputs[/** @type {keyof typeof outputs} */ (type)](`${appDir}/results`);
+};
+
+const outputStream = outputTypes.length === 1
+	? buildStream(outputTypes[0])
+	: new MultiStream(outputTypes.map(buildStream));
 const runMode = process.argv[3];
 
 /** @type {{ duration: number, success: boolean }[]} */

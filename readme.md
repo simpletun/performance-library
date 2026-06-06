@@ -430,6 +430,23 @@ Results can be output in multiple formats, selected via the `--output` run mode 
 - **OTEL** (`output:otel`): Export metrics via OpenTelemetry (OTLP/HTTP) — compatible with Grafana Alloy, OpenTelemetry Collector, and any OTLP-compatible backend
 - **Stdout** (`output:stdout`): Print results to console
 
+### Multiple Simultaneous Outputs
+
+Combine any outputs in a single run by joining their names with `+`:
+
+```bash
+# Raw per-request data to InfluxDB + summarized metrics to OTel/Prometheus
+npm start my-scenario output:influxdb+otel
+
+# OTel metrics with a local CSV copy for debugging
+npm start my-scenario output:otel+csv
+
+# Three simultaneous outputs
+npm start my-scenario output:influxdb+otel+stdout
+```
+
+All outputs receive every result in parallel. If one output fails it does not prevent the others from receiving data, but the first error is surfaced back to the master process.
+
 ### OTEL Output
 
 The OTEL output type exports all request metrics as standard OpenTelemetry metrics using OTLP/HTTP, making it compatible with Grafana Alloy, Grafana Mimir, Prometheus, and any other OTLP-capable backend.

@@ -84,6 +84,11 @@ export class InfluxDbStream extends Writable {
 		this._writeQueue.push(line);
 		done();
 	}
+
+	/** @param {(error?: Error | null) => void} done */
+	_final(done) {
+		this._writeQueue.flush().then(() => done(), done);
+	}
 }
 
 class InfluxDbEventQueue {

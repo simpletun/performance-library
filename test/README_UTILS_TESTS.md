@@ -103,7 +103,34 @@ Tests the LineReader class for efficient file reading line-by-line.
 
 ---
 
-### 5. `mysql.test.cjs` - MySQL Connection Pool
+### 5. `multi.test.cjs` - Multi-Output Fan-out Stream
+**Coverage: 16 test cases across all public behaviours**
+
+Tests the `MultiStream` class that fans a single write stream out to multiple child output streams simultaneously.
+
+**Test Coverage:**
+- ✅ Constructor with empty array, no argument, and populated array
+- ✅ Fan-out delivers every chunk to all child streams
+- ✅ Multiple chunks delivered in order to all children
+- ✅ Callback called with `null` on success (both empty-list and populated paths)
+- ✅ First child write error surfaced through the write callback
+- ✅ All children still written even when an earlier child errors
+- ✅ All child streams ended when `MultiStream.end()` is called
+- ✅ `_final` error from a child surfaced through the end callback
+- ✅ All child streams destroyed when `MultiStream` is destroyed
+- ✅ Already-destroyed children are not re-destroyed
+- ✅ Child `'error'` events propagate up to `MultiStream`
+- ✅ Only the first child error propagates when multiple children error simultaneously
+
+**Key Features Tested:**
+- Parallel fan-out to N children
+- Error isolation and propagation (write errors, final errors, emitted errors)
+- Correct stream lifecycle (`_write`, `_final`, `_destroy`)
+- Guard against double-destroy on already-destroyed children
+
+---
+
+### 6. `mysql.test.cjs` - MySQL Connection Pool
 **Coverage: 80.35% statements, 72% branches**
 
 Tests the MysqlPool class for database connection management and querying.
@@ -169,7 +196,7 @@ npx mocha test/request.test.cjs
 
 ## Test Statistics
 
-- **Total Tests**: 99 passing
+- **Total Tests**: 140 passing
 - **Overall Coverage**: ~90% statements
 - **Test Execution Time**: ~2 seconds
 - **Zero Failures**: All tests passing
@@ -181,6 +208,7 @@ npx mocha test/request.test.cjs
 | request.js | 100% | 93.75% | 100% | 100% |
 | makeRequest.js | 100% | 100% | 100% | 100% |
 | sleep.js | 100% | 100% | 100% | 100% |
+| multi.js | Well tested with 16 test cases | | | |
 | mysql.js | 80.35% | 72% | 81.08% | 80% |
 | linereader.js | Well tested with 17 test cases | | | |
 

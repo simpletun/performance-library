@@ -18,7 +18,7 @@ src/
   cache.js               — TTL cache factory (time-based key expiry)
   cached-function.js     — memoization wrapper built on cache.js
   constants.js           — shared constants (TTL default)
-  outputs/               — pluggable result formatters (csv, json, newrelic, influxdb, stdout)
+  outputs/               — pluggable result formatters (csv, json, newrelic, influxdb, otel, stdout, multi)
   providers/             — built-in worker types (file-data-provider, mysql-data-provider)
   transports/            — Winston logger transport for cluster
   utils/                 — shared utilities (makeRequest, HTTP client, linereader, sleep, rampup…)
@@ -86,6 +86,12 @@ npm publish          # runs npm test first (prepublishOnly), then publishes
 
 Deep imports into `src/` outside these three paths are blocked by the exports map.
 
+**Multi-output** (`src/outputs/multi.js`):
+- `MultiStream` extends `Writable` in object mode and wraps an array of child output streams.
+- `master.js` splits the `output` run-mode value on `+` and, when more than one type is named, wraps all child streams in a single `MultiStream`. Single-output runs are unaffected.
+- Child stream errors are propagated to `MultiStream` via `destroy(err)`. Write errors from individual children are surfaced through the normal stream callback but do not prevent the remaining children from receiving the same chunk.
+- `MultiStream` is exported from `src/index.js` so consumers can compose their own fan-out if needed.
+
 **Run-mode flags** (`src/run-mode.js`):
 - Parses `process.argv[3]` (a comma-separated string like `output:influxdb,log:debug,signalfx`) into the `runModeFlags` Map.
 - Called once by the master process at startup; the populated Map is then read by output selection logic and utilities (e.g., `makeRequest` checks `runModeFlags.has('signalfx')` to decide whether to start an OpenTelemetry span).
@@ -98,7 +104,7 @@ Deep imports into `src/` outside these three paths are blocked by the exports ma
 
 - Tests live in `test/` as `.cjs` files and run with Mocha (config in `.mocharc.json`).
 - Tests are `.cjs` (not `.js`) because some use `Module.prototype.require` patching for mocking, which is CJS-only. Do not convert them to ESM without replacing the mocking strategy.
-- Unit tests cover: `math.js`, `makeRequest`, low-level `request` (HTTP client), `master.js`, MySQL utilities, `linereader`, `sleep`.
+- Unit tests cover: `math.js`, `makeRequest`, low-level `request` (HTTP client), `master.js`, MySQL utilities, `linereader`, `sleep`, `MultiStream` (multi-output fan-out).
 - Run `npm run coverage` to see coverage gaps before adding new code paths.
 - There are no integration tests that require a live server or database — keep new tests unit-scoped or mock external dependencies.
 
