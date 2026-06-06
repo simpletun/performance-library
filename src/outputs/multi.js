@@ -18,13 +18,12 @@ export class MultiStream extends Writable {
     }
 
     /**
-     * @param {any} chunk
-     * @param {BufferEncoding} encoding
+     * Fan a single operation out to all child streams, collecting the first error.
+     * @param {(s: Writable, finish: (err?: Error | null) => void) => void} action
      * @param {(error?: Error | null) => void} done
      */
-    _write(chunk, encoding, done) {
+    _fanOut(action, done) {
         if (this._streams.length === 0) return done(null);
-
         let pending = this._streams.length;
         /** @type {Error | null} */
         let firstError = null;
@@ -33,22 +32,24 @@ export class MultiStream extends Writable {
             if (err && !firstError) firstError = err;
             if (--pending === 0) done(firstError);
         };
-        this._streams.forEach((s) => s.write(chunk, encoding, finish));
+        this._streams.forEach((s) => action(s, finish));
+    }
+
+    /**
+     * @param {any} chunk
+     * @param {BufferEncoding} encoding
+     * @param {(error?: Error | null) => void} done
+     */
+    _write(chunk, encoding, done) {
+        this._fanOut((s, finish) => s.write(chunk, encoding, finish), done);
     }
 
     /** @param {(error?: Error | null) => void} done */
     _final(done) {
-        if (this._streams.length === 0) return done(null);
-
-        let pending = this._streams.length;
-        /** @type {Error | null} */
-        let firstError = null;
-        /** @param {Error | undefined} err */
-        const finish = (err) => {
-            if (err && !firstError) firstError = err;
-            if (--pending === 0) done(firstError);
-        };
-        this._streams.forEach((s) => s.end(finish));
+        this._fanOut((s, finish) => {
+            if (s.destroyed) return finish(null);
+            s.end(finish);
+        }, done);
     }
 
     /**

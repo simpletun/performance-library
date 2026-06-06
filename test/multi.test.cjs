@@ -138,6 +138,18 @@ describe('MultiStream', () => {
             ms.end(done);
         });
 
+        it('does not hang when a child is already destroyed before _final runs', (done) => {
+            const a = makeCollector();
+            const b = makeCollector();
+            b.destroy(); // pre-destroy one child
+            const ms = new MultiStream([a, b]);
+
+            ms.end(() => {
+                assert.ok(a.writableEnded, 'live child should be ended');
+                done();
+            });
+        });
+
         it('surfaces a child _final error through the callback', (done) => {
             const badFinal = new Writable({
                 objectMode: true,

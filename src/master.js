@@ -18,8 +18,10 @@ parseRunMode();
 
 const outputs = {
 	csv: CsvStream,
+	influxdb: InfluxDbStream,
 	json: JsonStream,
 	newrelic: NewrelicStream,
+	otel: OtelStream,
 	stdout: StdoutStream
 };
 
@@ -27,18 +29,20 @@ const scenario = process.argv[2];
 const { default: config } = await import(`${appDir}/../scenarios/${scenario}.js`);
 (/** @type {any} */ (global)).config = config;
 
-const outputTypes = (runModeFlags.get('output') || 'csv').split('+');
+const outputTypes = (runModeFlags.get('output') || 'csv').split('+').map(t => t.trim()).filter(Boolean);
+
+const scenarioStart = Date.now();
+const dt = new Date(scenarioStart).toISOString().slice(0, 16).replace(/-/g, '').replace('T', '_').replace(':', '');
+const sharedRunId = `${dt}-${Math.random().toString(36).slice(2, 7)}`;
 
 /** @param {string} type */
 const buildStream = (type) => {
-	if (type === 'otel')     return new OtelStream(`${appDir}/results`, config.otelOptions);
-	if (type === 'influxdb') return new InfluxDbStream(config.influxdbOptions);
-
 	if (!outputs[/** @type {keyof typeof outputs} */ (type)]) {
-		throw new Error(`Unsupported output type: "${type}". Available: ${Object.keys(outputs).join(', ')}, otel, influxdb`);
+		throw new Error(`Unsupported output type: "${type}". Available: ${Object.keys(outputs).join(', ')}`);
 	}
 
-	return new outputs[/** @type {keyof typeof outputs} */ (type)](`${appDir}/results`);
+	const opts = { runId: sharedRunId, ...config[`${type}Options`] };
+	return new outputs[/** @type {keyof typeof outputs} */ (type)](`${appDir}/results`, opts);
 };
 
 const outputStream = outputTypes.length === 1

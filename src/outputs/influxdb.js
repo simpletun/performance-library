@@ -17,15 +17,18 @@ const escapeTag = (str) => String(str || '').replace(/([,= ])/g, '\\$1');
 const escapeFieldString = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
 export class InfluxDbStream extends Writable {
-	/** @param {{ url?: string, token?: string, org?: string, bucket?: string }} [options] */
-	constructor(options = {}) {
+	/**
+	 * @param {string} [_resultsPath] ignored; kept for consistency with other output stream constructors
+	 * @param {{ url?: string, token?: string, org?: string, bucket?: string, runId?: string }} [options]
+	 */
+	constructor(_resultsPath, options = {}) {
 		super({
 			objectMode: true
 		});
 
 		this._scenarioStart = Date.now();
 		const dt = new Date(this._scenarioStart).toISOString().slice(0, 16).replace(/-/g, '').replace('T', '_').replace(':', '');
-		this._runId = `${dt}-${Math.random().toString(36).slice(2, 7)}`;
+		this._runId = options.runId || `${dt}-${Math.random().toString(36).slice(2, 7)}`;
 		
 		// Configuration defaults to options, falling back to Environment Variables
 		this._writeQueue = new InfluxDbEventQueue({
@@ -72,11 +75,11 @@ export class InfluxDbStream extends Writable {
 			`connectTime_ms=${response.connect || 0}i`,
 			`statusMessage="${escapeFieldString(STATUS_CODES[response.status])}"`,
 			`error="${escapeFieldString(response.error)}"`,
-			`is_error=${response.error ? 'true' : 'false'}`
+			`is_error=${!response.success ? 'true' : 'false'}`
 		].join(',');
 
 		// Timestamp must be in the precision format specified in the API request (ms)
-		const timestamp = response.startTime + response.duration;
+		const timestamp = response.startTime + (response.duration ?? (response.endTime - response.startTime));
 
 		// Assemble the complete InfluxDB Line Protocol string
 		const line = `performance_result,${tags} ${fields} ${timestamp}`;
@@ -132,6 +135,7 @@ class InfluxDbEventQueue {
 			await this.makeRequest(lines);
 		} catch (/** @type {any} */ err) {
 			logger.error('Failed to send events to InfluxDB', { error: err.message || err });
+			throw err;
 		}
 	}
 

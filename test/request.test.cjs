@@ -36,6 +36,7 @@ describe('request.js', () => {
 		mockSocket = new EventEmitter();
 		mockSocket.bytesRead = 1024;
 		mockSocket.bytesWritten = 512;
+		mockSocket.connecting = true;
 
 		// Create mock request object
 		mockReq = new EventEmitter();
@@ -67,7 +68,7 @@ describe('request.js', () => {
 
 				// Emit socket event first
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					// Then emit connect on socket
 					setImmediate(() => {
 						mockSocket.emit('connect');
@@ -115,7 +116,7 @@ describe('request.js', () => {
 				assert.equal(options.rejectUnauthorized, false);
 
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {
@@ -158,7 +159,7 @@ describe('request.js', () => {
 				};
 
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {
@@ -192,7 +193,7 @@ describe('request.js', () => {
 
 			mockHttp.request = (options, callback) => {
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {
@@ -227,7 +228,7 @@ describe('request.js', () => {
 
 			mockHttp.request = (options, callback) => {
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {
@@ -288,7 +289,7 @@ describe('request.js', () => {
 				assert.equal(options.port, 8080);
 
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {
@@ -326,7 +327,7 @@ describe('request.js', () => {
 				};
 
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {
@@ -364,7 +365,7 @@ describe('request.js', () => {
 				};
 
 				setImmediate(() => {
-					mockReq.emit('socket');
+					mockReq.emit('socket', mockSocket);
 					setImmediate(() => {
 						mockSocket.emit('connect');
 						setImmediate(() => {

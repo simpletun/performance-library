@@ -56,10 +56,12 @@ export const request = ({ method, headers, path, payload, hostname, port, ssl })
 
 		const req = (ssl ? https : http).request(options, onResponse);
 
-		req.on('socket', () => {
-			req.socket.on('connect', () => {
-				connectTime = Date.now();
-			});
+		req.on('socket', (/** @type {import('net').Socket} */ socket) => {
+			if (socket.connecting) {
+				socket.once('connect', () => {
+					connectTime = Date.now();
+				});
+			}
 		});
 
 		req.on('error', (/** @type {Error} */ error) => {
