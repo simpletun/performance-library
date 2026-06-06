@@ -1,6 +1,6 @@
 {
   "name": "cluster-load-runner",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A library for performance testing utilities",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"

@@ -15,19 +15,23 @@ export class CsvStream extends Writable {
 	/** @type {import('csv-stringify').Stringifier} */
 	_stringifier;
 
-	/** @param {string} outputDirectory */
-	constructor(outputDirectory) {
+	/**
+	 * @param {string} outputDirectory
+	 * @param {{ runId?: string }} [options]
+	 */
+	constructor(outputDirectory, options = {}) {
 		super({
 			objectMode: true
 		});
 
 		mkdir(outputDirectory);
 
-		const outputStream = createWriteStream(`${outputDirectory}/${Date.now()}.csv`);
+		const runId = options.runId || `${Date.now()}`;
+		const outputStream = createWriteStream(`${outputDirectory}/${Date.now()}_${runId}.csv`);
 
 		this._stringifier = new Stringifier({
 			header: true,
-			rowDelimiter: '\n',
+			record_delimiter: '\n',
 			columns: [
 				'timeStamp',
 				'elapsed',
@@ -53,6 +57,7 @@ export class CsvStream extends Writable {
 
 		logger.info('Recording results to CSV', {
 			outputDirectory,
+			runId,
 			scenarioName,
 			projectName
 		});

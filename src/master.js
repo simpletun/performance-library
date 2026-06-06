@@ -5,6 +5,7 @@ import { parseRunMode, runModeFlags } from './run-mode.js';
 import { CsvStream } from './outputs/csv.js';
 import { InfluxDbStream } from './outputs/influxdb.js';
 import { JsonStream } from './outputs/json.js';
+import { MultiStream } from './outputs/multi.js';
 import { NewrelicStream } from './outputs/newrelic.js';
 import { OtelStream } from './outputs/otel.js';
 import { StdoutStream } from './outputs/stdout.js';
@@ -14,8 +15,6 @@ import path from 'path';
 const appDir = path.dirname(process.argv[1]);
 
 parseRunMode();
-
-const outputType = runModeFlags.get('output') || 'csv';
 
 const outputs = {
 	csv: CsvStream,
@@ -29,9 +28,26 @@ const outputs = {
 const scenario = process.argv[2];
 const { default: config } = await import(`${appDir}/../scenarios/${scenario}.js`);
 (/** @type {any} */ (global)).config = config;
-const outputStream = outputType === 'otel'
-	? new OtelStream(`${appDir}/results`, config.otelOptions)
-	: new outputs[/** @type {keyof typeof outputs} */ (outputType)](`${appDir}/results`);
+
+const outputTypes = (runModeFlags.get('output') || 'csv').split('+').map(t => t.trim()).filter(Boolean);
+
+const scenarioStart = Date.now();
+const dt = new Date(scenarioStart).toISOString().slice(0, 16).replace(/-/g, '').replace('T', '_').replace(':', '');
+const sharedRunId = `${dt}-${Math.random().toString(36).slice(2, 7)}`;
+
+/** @param {string} type */
+const buildStream = (type) => {
+	if (!outputs[/** @type {keyof typeof outputs} */ (type)]) {
+		throw new Error(`Unsupported output type: "${type}". Available: ${Object.keys(outputs).join(', ')}`);
+	}
+
+	const opts = { runId: sharedRunId, ...config[`${type}Options`] };
+	return new outputs[/** @type {keyof typeof outputs} */ (type)](`${appDir}/results`, opts);
+};
+
+const outputStream = outputTypes.length === 1
+	? buildStream(outputTypes[0])
+	: new MultiStream(outputTypes.map(buildStream));
 const runMode = process.argv[3];
 
 /** @type {{ duration: number, success: boolean }[]} */

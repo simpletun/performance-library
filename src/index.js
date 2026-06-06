@@ -1,6 +1,7 @@
 export { CsvStream } from './outputs/csv.js';
 export { InfluxDbStream } from './outputs/influxdb.js';
 export { JsonStream } from './outputs/json.js';
+export { MultiStream } from './outputs/multi.js';
 export { NewrelicStream } from './outputs/newrelic.js';
 export { StdoutStream } from './outputs/stdout.js';
 
