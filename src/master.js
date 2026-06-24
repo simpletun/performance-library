@@ -124,7 +124,7 @@ const createWorker = (workerConfig, isProvider = false) => {
 	addToWorkerGroup(worker, workerGroup);
 
 	if(!isProvider){
-		totalThreads++;
+		totalThreads += (workerConfig.subThreads || 1);
 		workers.add(worker);
 	}
 	else {
@@ -166,7 +166,7 @@ const createWorker = (workerConfig, isProvider = false) => {
 				}
 
 				if(!isProvider){
-					totalThreads--;
+					totalThreads -= (workerConfig.subThreads || 1);
 					workers.delete(worker);
 					logger.verbose('Worker finished', { pid: worker.process.pid });
 				}
