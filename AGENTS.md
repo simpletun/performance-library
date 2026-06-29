@@ -21,7 +21,7 @@ src/
   outputs/               — pluggable result formatters (csv, json, newrelic, influxdb, otel, stdout, multi)
   providers/             — built-in worker types (file-data-provider, mysql-data-provider)
   transports/            — Winston logger transport for cluster
-  utils/                 — shared utilities (makeRequest, HTTP client, linereader, sleep, rampup…)
+  utils/                 — shared utilities (makeRequest, HTTP client, linereader, sleep, thinkTime, rampup…)
 test/
   *.test.cjs             — Mocha unit tests (CommonJS; kept as .cjs due to Module.prototype.require mocking)
 ```
@@ -104,7 +104,7 @@ Deep imports into `src/` outside these three paths are blocked by the exports ma
 
 - Tests live in `test/` as `.cjs` files and run with Mocha (config in `.mocharc.json`).
 - Tests are `.cjs` (not `.js`) because some use `Module.prototype.require` patching for mocking, which is CJS-only. Do not convert them to ESM without replacing the mocking strategy.
-- Unit tests cover: `math.js`, `makeRequest`, low-level `request` (HTTP client), `master.js`, MySQL utilities, `linereader`, `sleep`, `MultiStream` (multi-output fan-out).
+- Unit tests cover: `math.js`, `makeRequest`, low-level `request` (HTTP client), `master.js`, MySQL utilities, `linereader`, `sleep`, `thinkTime` (uniform and Gaussian think time), `MultiStream` (multi-output fan-out).
 - Run `npm run coverage` to see coverage gaps before adding new code paths.
 - There are no integration tests that require a live server or database — keep new tests unit-scoped or mock external dependencies.
 

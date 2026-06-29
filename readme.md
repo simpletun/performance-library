@@ -208,14 +208,14 @@ Example: `src/workers/api-test.js`
 
 ```javascript
 import {
-    config,           // Configuration from scenario
-    shutdown,         // Function to stop worker
-    onMessage,        // Listen for messages from master
-    makeRequest,      // Make HTTP requests with timing
-    sleep,            // Sleep utility
-    randomNumberFrom, // Random number generator
-    logger,           // Logging utility
-    FileReadMessenger // Request data from file provider
+    config,             // Configuration from scenario
+    shutdown,           // Function to stop worker
+    onMessage,          // Listen for messages from master
+    makeRequest,        // Make HTTP requests with timing
+    uniformThinkTime,   // Sleep a random uniform duration between from and to
+    gaussianThinkTime,  // Sleep a bell-curve duration with from/to as the outer edges (~3 std deviations)
+    logger,             // Logging utility
+    FileReadMessenger   // Request data from file provider
 } from 'cluster-load-runner';
 
 // If using a data provider, create a messenger
@@ -249,7 +249,7 @@ const startSubThread = async () => {
         }
 
         // Random "think time" between requests
-        await sleep(randomNumberFrom(config.thinkFrom, config.thinkTo));
+        await uniformThinkTime(config.thinkFrom, config.thinkTo);
     }
 };
 
@@ -326,6 +326,8 @@ MysqlQueryMessenger  // Request data from mysql-data-provider
 
 // Utilities
 sleep()                  // Async sleep
+uniformThinkTime()       // Sleep a random uniform duration between from and to
+gaussianThinkTime()      // Sleep a bell-curve duration with from/to as the outer edges (~3 std deviations)
 randomNumberFrom()       // Random number in range
 randomInt()              // Random integer
 randomItem()             // Pick random item from array
