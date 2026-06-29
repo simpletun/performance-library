@@ -169,6 +169,11 @@ export function randomCharacters(count: number, chars?: string): string;
 
 export function sleep(ms: number): Promise<void>;
 
+// ─── Think Time ───────────────────────────────────────────────────────────────
+
+export function uniformThinkTime(from: number, to: number): Promise<void>;
+export function gaussianThinkTime(from: number, to: number): Promise<void>;
+
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
 export const TTL: number;

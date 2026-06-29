@@ -130,7 +130,31 @@ Tests the `MultiStream` class that fans a single write stream out to multiple ch
 
 ---
 
-### 6. `mysql.test.cjs` - MySQL Connection Pool
+### 6. `thinkTime.test.cjs` - Think Time Utilities
+**Tests: 9 test cases covering both timer functions**
+
+Tests the `uniformThinkTime` and `gaussianThinkTime` utility functions.
+
+**Test Coverage:**
+- ✅ `uniformThinkTime` returns a Promise
+- ✅ `uniformThinkTime` sleeps at least the minimum duration
+- ✅ `uniformThinkTime` sleeps no longer than the maximum duration
+- ✅ `uniformThinkTime` works when `from` and `to` are equal
+- ✅ `gaussianThinkTime` returns a Promise
+- ✅ `gaussianThinkTime` resolves near the mean when deviation is zero
+- ✅ `gaussianThinkTime` never sleeps a negative duration (default `min` of 0)
+- ✅ `gaussianThinkTime` respects a custom `min` floor
+- ✅ `gaussianThinkTime` produces a distribution centered on the mean (statistical smoke test)
+
+**Key Features Tested:**
+- Promise-based async delays for both functions
+- Timing accuracy and range bounds for uniform distribution
+- Bell-curve distribution shape verified via Box-Muller sample mean check
+- Minimum floor clamping for Gaussian function
+
+---
+
+### 7. `mysql.test.cjs` - MySQL Connection Pool
 **Coverage: 80.35% statements, 72% branches**
 
 Tests the MysqlPool class for database connection management and querying.
@@ -196,7 +220,7 @@ npx mocha test/request.test.cjs
 
 ## Test Statistics
 
-- **Total Tests**: 140 passing
+- **Total Tests**: 153 passing
 - **Overall Coverage**: ~90% statements
 - **Test Execution Time**: ~2 seconds
 - **Zero Failures**: All tests passing
@@ -211,6 +235,7 @@ npx mocha test/request.test.cjs
 | multi.js | Well tested with 16 test cases | | | |
 | mysql.js | 80.35% | 72% | 81.08% | 80% |
 | linereader.js | Well tested with 17 test cases | | | |
+| thinkTime.js | 100% | 100% | 100% | 100% |
 
 ## Benefits of These Tests
 

@@ -31,6 +31,7 @@ export {
 
 export { request } from './utils/request.js';
 export { sleep } from './utils/sleep.js';
+export { uniformThinkTime, gaussianThinkTime } from './utils/thinkTime.js';
 
 export { cache } from './cache.js';
 export { cachedFunction } from './cached-function.js';
